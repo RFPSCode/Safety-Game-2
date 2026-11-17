@@ -1095,6 +1095,12 @@ async function getVRMChar(id,onProg){if(VCH[id])return VCH[id];await loadBuf(id,
   const vrm=await parseVRM(VBUF[id]);const c=makeVRMChar(vrm,VRM_H[id]||1.4,{shorts:null,noRun:id==='teacher',stride:id==='teacher'?0.6:1});c.id=id;VCH[id]=c;return c;}
 
 const VB=['hips','spine','chest','neck','head','leftUpperArm','leftLowerArm','leftHand','rightUpperArm','rightLowerArm','rightHand','leftUpperLeg','leftLowerLeg','leftFoot','rightUpperLeg','rightLowerLeg','rightFoot'];
+/* keyframes: throw [t, rDown,rSwing,rFlex, twist,lean, lDown,lSwing,lFlex, legL,legR]; jump/land [t, thigh,knee,foot, armSwing, spine, drop] */
+const TW_K=[[0,1.3,0.02,0.18,0,0.05,1.3,0.02,0.18,0,0],[0.6,1.5,-3.3,2.1,-0.45,0.0,1.5,-1.25,0.6,-0.38,0.32]];
+const TH_K=[[0,1.5,-3.3,2.1,-0.45,0.0,1.5,-1.25,0.6,-0.38,0.32],[0.06,1.5,-2.9,1.5,-0.2,0.08,1.45,-0.9,0.8,-0.38,0.3],[0.13,1.5,-1.9,0.25,0.25,0.25,1.35,-0.3,1.2,-0.4,0.25],[0.45,1.45,-0.55,0.45,0.45,0.32,1.3,0.1,0.9,-0.35,0.1],[1.0,1.35,-0.25,0.3,0.15,0.12,1.3,0,0.3,-0.15,0.05]];
+const JR_K=[-1.0,1.6,-0.6,0.9,0.45,0.12];
+const JP_K=[[0,-1.0,1.6,-0.6,0.9,0.45,0.12],[0.1,-0.15,0.15,0.4,-2.4,0.05,0],[0.3,-0.9,1.3,0.2,-1.9,0.2,0],[0.6,-0.6,0.8,0.1,-1.6,0.15,0]];
+const LD_K=[[0,-0.9,1.3,0.2,-1.9,0.2,0],[0.15,-1.55,2.25,-0.6,-1.3,0.5,0.22],[0.6,-1.45,2.1,-0.55,-0.9,0.4,0.2]];
 function makeVRMChar(vrm,height=1.42,opts={}){
   const c={kind:'vrm',vrm,root:new THREE.Group(),pose:'idle',mood:'',phase:0,talk:false,t:Math.random()*5,marks:[],animSpeed:1,blinkT:2,vis:{v:'aa',t:0,o:0}};
   c.root.rotation.order='YXZ';const body=new THREE.Group();c.root.add(body);c.body=body;body.add(vrm.scene);
@@ -1122,12 +1128,13 @@ function makeVRMChar(vrm,height=1.42,opts={}){
     const hp=c.B.hips,L=Math.abs(c.B.leftLowerLeg.position.y)||0.3;add(hp,sph(L*0.36,16,12),col,[0,-L*0.02,0],[0,0,0],[1.12,0.8,0.95],{ol:false});}
   const E=new THREE.Euler(),Q=new THREE.Quaternion(),Q2=new THREE.Quaternion(),XA=new V3(1,0,0),_lp=new V3(),_np=new V3();
   if(vrm.springBoneManager)vrm.springBoneManager.joints.forEach(j=>{if(/Skirt/i.test(j.bone.name)){j.settings.gravityPower=Math.max(j.settings.gravityPower||0,1.0);j.settings.dragForce=Math.max(j.settings.dragForce||0,0.6);if(j.settings.gravityDir)j.settings.gravityDir.set(0,-1,0);}});
+  const kf=(K,tt)=>{let i=0;while(i<K.length-2&&tt>K[i+1][0])i++;const A=K[i],Bk=K[i+1];const u=easeIO(Math.min(1,Math.max(0,(tt-A[0])/(Bk[0]-A[0]))));return A.map((x,j)=>lerp(x,Bk[j],u)).slice(j0(K));};const j0=K=>K===JP_K||K===LD_K?1:0;
   const arm=(T,s,down,swing=0,flex=0.15,tw=0,roll=0)=>{const n=s>0?'left':'right';T[n+'UpperArm']=[swing,tw*s,-s*down,roll];T[n+'LowerArm']=[0,-s*flex,0];};
   const leg=(T,s,thigh,knee=0,foot=0,spread=0)=>{const n=s>0?'left':'right';T[n+'UpperLeg']=[thigh,0,spread*s];T[n+'LowerLeg']=[knee,0,0];T[n+'Foot']=[foot,0,0];};
   c.update=dt=>{c.t+=dt;const t=c.t,P=c.pose;const T={};let bob=0;
     const sadM=c.mood==='sad'||c.mood==='hurt';if(c._pP!==P){c._pP=P;c._p0=t;}const pt=t-c._p0;let drop=0;
     arm(T,1,1.3,0.02,0.18);arm(T,-1,1.3,0.02,0.18);leg(T,1,0);leg(T,-1,0);T.spine=[0,0,0];T.chest=[Math.sin(t*2.2)*0.015,0,0];T.head=[sadM?0.25:0,0,0];T.neck=[sadM?0.1:0,0,0];
-    if(P==='walk'||P==='run'){const run=P==='run'&&!opts.noRun;c.phase+=dt*(run?12.5:(P==='run'?11:8))*(c.animSpeed||1);const ph=c.phase,s=Math.sin(ph),co=Math.cos(ph);
+    if(P==='walk'||P==='run'){const run=P==='run'&&!opts.noRun;c.phase+=dt*(c.gaitV!=null?PI*c.gaitV/((run?0.95:0.55)*(c.hgt||1.3)/1.3):(run?12.5:(P==='run'?11:8)))*(c.animSpeed||1);const ph=c.phase,s=Math.sin(ph),co=Math.cos(ph);
       const a=(run?0.85:0.48)*(opts.stride||1);leg(T,1,-a*s,(run?0.25:0.08)+(run?1.25:0.55)*Math.max(0,co),run?0.2:0.05);leg(T,-1,a*s,(run?0.25:0.08)+(run?1.25:0.55)*Math.max(0,-co),run?0.2:0.05);
       const af=run?0.95:0.7;arm(T,1,run?1.18:1.27,a*s*af,run?1.25:0.3);arm(T,-1,run?1.18:1.27,-a*s*af,run?1.25:0.3);
       T.spine=[run?0.22:0.04,0,0];T.chest=[0,-s*(run?0.12:0.06),0];bob=Math.abs(co)*(run?0.05:0.02);
@@ -1144,11 +1151,11 @@ function makeVRMChar(vrm,height=1.42,opts={}){
     else if(P==='reach'){arm(T,1,1.55,-1.4,0.1);arm(T,-1,1.55,-1.4,0.1);T.spine=[0.2,0,0];}
     else if(P==='grabLow'){leg(T,1,-0.75,1.15,-0.4);leg(T,-1,-0.55,1.0,-0.4);arm(T,1,1.5,-0.55,0.12);arm(T,-1,1.5,-0.55,0.12);T.spine=[0.85,0,0];T.chest=[0.3,0,0];T.neck=[-0.3,0,0];T.head=[-0.35,0,0];}
     else if(P==='kick'){leg(T,-1,-0.95,0.15,0.3);leg(T,1,0.15,0.2);arm(T,1,1.0,0.4,0.4);arm(T,-1,1.0,-0.4,0.4);T.spine=[-0.08,0,0];}
-    else if(P==='throw'){const k=Math.min(1,pt*1.1);const K=[[0,1.3,0.02,0.18,0],[0.5,1.5,-3.3,2.1,0],[0.66,1.5,-1.95,0.3,0],[1,1.45,-0.55,0.45,0]];
-      let i=0;while(i<K.length-2&&k>K[i+1][0])i++;const A=K[i],Bk=K[i+1],u=easeIO(Math.min(1,Math.max(0,(k-A[0])/(Bk[0]-A[0]))));const L=j=>lerp(A[j],Bk[j],u);
-      arm(T,-1,L(1),L(2),L(3),0,L(4));const w=Math.min(1,k/0.5),f=k<0.5?0:Math.min(1,(k-0.5)/0.2);
-      arm(T,1,lerp(1.3,1.5,w),lerp(0,-1.25,w),0.6);leg(T,1,-0.38*w,0.22*w,0.1*w);leg(T,-1,0.32*w,0.28*w,-0.1*w);
-      const tw=k<0.5?-0.45*w:lerp(-0.45,0.4,f);T.spine=[0.06+0.22*f,tw*0.5,0];T.chest=[0.04+0.12*f,tw*0.6,0];T.head=[0.05,-tw*0.7,0];}
+    else if(P==='throwWind'||P==='throw'){const K=P==='throwWind'?TW_K:TH_K,v=kf(K,pt);
+      arm(T,-1,v[1],v[2],v[3]);arm(T,1,v[6],v[7],v[8]);leg(T,1,v[9],0.25*Math.abs(v[9]),0.12*Math.abs(v[9]));leg(T,-1,v[10],0.3*Math.abs(v[10]),-0.1*Math.abs(v[10]));
+      T.spine=[0.06+v[5],v[4]*0.5,0];T.chest=[v[5]*0.5,v[4]*0.6,0];T.head=[0.05-v[5]*0.4,-v[4]*0.7,0];if(P==='throwWind'&&pt>0.6)T.chest[0]+=Math.sin(t*5)*0.012;}
+    else if(P==='jumpReady'||P==='jump'||P==='land'){const v=P==='jumpReady'?JR_K:kf(P==='jump'?JP_K:LD_K,pt);const br=P==='jumpReady'?Math.sin(t*4)*0.03:0;
+      leg(T,1,v[0]+br,v[1]+br*1.5,v[2],0.1);leg(T,-1,v[0]*0.88+br,v[1]*0.9+br*1.5,v[2],0.1);arm(T,1,1.45,v[3],0.35);arm(T,-1,1.45,v[3],0.35);T.spine=[v[4],0,0];T.head=[-v[4]*0.6,0,0];drop=v[5];}
     else if(P==='fist'){const sh=Math.sin(t*30)*0.03;arm(T,1,1.3,-0.75,2.2+sh);arm(T,-1,1.3,-0.75,2.2-sh);T.spine=[0.1,0,0];T.chest=[0.06+Math.sin(t*3)*0.03,0,0];T.neck=[0.12,0,0];T.head=[0.12,0,0];}
     else if(P==='squat'){leg(T,1,-1.95,2.45,-0.5,0.22);leg(T,-1,-1.95,2.45,-0.5,0.22);arm(T,-1,1.45,-0.95,0.25);arm(T,1,1.25,-0.55,0.9);T.spine=[0.5,0,0];T.chest=[0.15,0,0];T.neck=[-0.15,0,0];T.head=[-0.1,0,0];drop=0.25;}
     else if(P==='breathe'){const b=Math.sin(t*1.6);arm(T,1,1.2-0.05*b,-0.7,1.75);arm(T,-1,1.2-0.05*b,-0.7,1.75);T.chest=[-0.07*b-0.03,0,0];T.neck=[-0.04*b,0,0];T.head=[-0.06*b,0,0];}
@@ -1749,11 +1756,13 @@ function applyCam(dt){camera.position.copy(rig.pos);let by=0,bx=0;
   camera.position.y+=by;camera.position.x+=bx*0.3;if(rig.shake>0&&!RM){camera.position.x+=(Math.random()-.5)*rig.shake*0.3;camera.position.y+=(Math.random()-.5)*rig.shake*0.3;rig.shake=Math.max(0,rig.shake-dt*0.9);}
   camera.up.set(0,1,0);camera.lookAt(rig.look.x,rig.look.y+by*0.5,rig.look.z);camera.rotateZ(rig.roll);camera.updateMatrixWorld();occAdjust(dt);}
 function moveFP(to,dur,kind='run',look=null,ease=k=>k){rig.fp=true;const p0=rig.pos.clone(),l0=rig.look.clone();const d=new V3().subVectors(rig.look,rig.pos);const l1=look||to.clone().add(d);
-  rig.bob=kind==='run'?0.075:kind==='walk'?0.03:0;rig.bobF=kind==='run'?17:9;return tween(dur,k=>{rig.pos.lerpVectors(p0,to,k);rig.look.lerpVectors(l0,l1,k);},ease).then(()=>{rig.bob=0;});}
+  rig.bob=0;let gm=false;if(kind==='walk'||kind==='run'){const v=Math.hypot(to.x-p0.x,to.z-p0.z)/Math.max(0.05,dur),run=v>2.1;if(v>0.3){rig.bob=run?0.06:0.025;rig.bobF=2*PI*v/(run?0.95:0.55);}
+    const me=S&&S.me;if(me&&v>0.3&&['idle','walk','run'].includes(me.pose)){me.gaitV=v;me.pose=run?'run':'walk';gm=true;}}
+  return tween(dur,k=>{rig.pos.lerpVectors(p0,to,k);rig.look.lerpVectors(l0,l1,k);},ease).then(()=>{rig.bob=0;if(gm&&S&&S.me&&(S.me.pose==='walk'||S.me.pose==='run')){S.me.pose='idle';S.me.gaitV=null;}});}
 function camTo(pos,look,dur,ease=easeIO){const p0=rig.pos.clone(),l0=rig.look.clone(),r0=rig.roll;return tween(dur,k=>{rig.pos.lerpVectors(p0,pos,k);rig.look.lerpVectors(l0,look,k);rig.roll=lerp(r0,0,k);},ease);}
 function camCut(pos,look,fp=false){rig.fp=fp;_occ.set(0,0,0);rig.pos.copy(pos);rig.look.copy(look);rig.roll=0;rig.bob=0;}
-function walkTo(c,to,dur,pose='walk',o={}){const p0=c.root.position.clone();const dx=to.x-p0.x,dz=to.z-p0.z;if(Math.hypot(dx,dz)>0.01)c.root.rotation.y=Math.atan2(dx,dz);c.pose=pose;
-  return tween(dur,k=>{c.root.position.lerpVectors(p0,to,k);if(o.yf)c.root.position.y=o.yf(c.root.position.z);},o.ease).then(()=>{if(!o.keep)c.pose='idle';});}
+function walkTo(c,to,dur,pose='walk',o={}){const p0=c.root.position.clone();const dx=to.x-p0.x,dz=to.z-p0.z;if(Math.hypot(dx,dz)>0.01)c.root.rotation.y=Math.atan2(dx,dz);if(pose==='walk'||pose==='run'){const v=Math.hypot(dx,dz)/Math.max(0.05,dur);c.gaitV=v;pose=v>2.1?'run':'walk';}c.pose=pose;
+  return tween(dur,k=>{c.root.position.lerpVectors(p0,to,k);if(o.yf)c.root.position.y=o.yf(c.root.position.z);},o.ease).then(()=>{if(!o.keep){c.pose='idle';c.gaitV=null;}});}
 function faceTo(c,x,z){c.root.rotation.y=Math.atan2(x-c.root.position.x,z-c.root.position.z);}
 function handTo(x,y,z,show=true){hand.visible=show;hand.userData.pos.set(x,y,z);}
 function impact(color='#ff3b3b'){SFX.thud();if(S&&S.phase!=='crash'){S.phase='crash';stinger('crash');musicPlay(null);
@@ -1900,7 +1909,7 @@ const SH={
   /* locked-off camera that keeps a subject (or the midpoint of two) in frame */
   fixed:(pos,a,b,o={})=>()=>{const m=_c1.copy(a.root.position);if(b)m.lerp(b.root.position,0.5);m.y+=o.ly??0.8;aim(_c3.set(...pos),m,o.fov??40);},
 };
-function stageRig(){const x=rig.pos.x,z=rig.pos.z;return{x,y:S.floor(x,z),z,yaw:Math.atan2(rig.look.x-x,rig.look.z-z)};}
+function stageRig(){const x=rig.pos.x,z=rig.pos.z;return{x,y:Math.max(S.floor(x,z),rig.pos.y-(S.eye||1.3)),z,yaw:Math.atan2(rig.look.x-x,rig.look.z-z)};}
 const stageNear=(v,d)=>()=>{const vx=v.root.position.x,vz=v.root.position.z;let dx=vx-rig.pos.x,dz=vz-rig.pos.z;const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;const x=vx-dx*d,z=vz-dz*d;return{x,y:S.floor(x,z),z,yaw:Math.atan2(dx,dz)};};
 function cmRender(dt){if(!CM.ps.length)return;
   if(CM.life>0&&!CM.frozen){CM.life-=dt;if(CM.life<=0){cmHide();return;}}
@@ -1927,24 +1936,24 @@ function cmRender(dt){if(!CM.ps.length)return;
 const mePose=p=>{const me=S.me;me.pose=me.kind==='vrm'?p:({grabLow:'reach',kick:'run'}[p]||p);};
 const DIR={
   court:{
-    insert:[S=>({shot:SH.part(S.yu,'rightHand',{f:0.7,r:-0.4,y:0.1,fov:36}),tag:'被抱走的球'}),S=>({shot:SH.part(S.yu,'rightFoot',{f:-0.85,r:0.4,y:0.2,fov:36}),tag:'他的鞋跟，就在前面'})],
-    run:S=>[{slot:'A',shot:SH.two(S.me,S.yu,{d:3.2,side:-1,y:0.8,ly:0.7,fov:46}),fx:'speed',tag:'怒氣沖沖地追',sfx:'噠噠'},{slot:'B',shot:SH.part(S.me,'rightFoot',{f:0.85,r:0.5,y:0.14,fov:44}),fx:'speed',tag:'越走越快'}],
-    approach:(S,v)=>({pose:'walk',stage:null,ps:[{slot:'A',shot:SH.part(S.yu,'rightFoot',{f:-0.9,r:0.45,y:0.25,fov:38}),fx:'speed',tag:'腳尖貼著他的鞋跟',sfx:'唰'},{slot:'B',shot:SH.two(S.me,S.yu,{d:2.3,side:-1,y:0.5,ly:0.55,fov:46}),tag:'距離只剩半步'}],burst:{t:'危險！',icon:'⚠️'}}),
+    insert:[S=>({shot:SH.body(S.yu,{f:0.95,r:-0.55,y:0.95,ly:0.85,fov:36}),tag:'被抱走的球'}),S=>({shot:SH.body(S.yu,{f:-1.3,r:0.55,y:0.32,ly:0.15,fov:38}),tag:'他的鞋跟，就在前面'})],
+    run:S=>[{slot:'A',shot:SH.body(S.me,{f:-2.4,r:0.8,y:1.25,ly:0.95,fov:46}),fx:'speed',tag:'怒氣沖沖地追',sfx:'噠噠'},{slot:'B',shot:SH.body(S.me,{f:1.7,r:1.1,y:0.45,ly:0.5,fov:44}),fx:'speed',tag:'越走越快'}],
+    approach:(S,v)=>({pose:'walk',stage:null,ps:[{slot:'A',shot:SH.body(S.yu,{f:-1.55,r:-0.45,y:0.4,ly:0.12,fov:40}),fx:'speed',tag:'腳尖貼著他的鞋跟',sfx:'唰'},{slot:'B',shot:SH.fixed([10.7,1.15,-15.6],S.me,S.yu,{ly:0.7,fov:40}),tag:'距離只剩半步'}],burst:{t:'危險！',icon:'⚠️'}}),
     impact:S=>({ps:[{slot:'A',shot:()=>aim(_c3.set(10.3,0.8,-12.4),_c1.set(8.2,0.7,-13.9),44),fx:'impact',tag:'撞上水泥柱'},{slot:'B',shot:SH.face(S.yu),fx:'impact',tag:'小宇'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]}),
     safe:S=>({pose:'breathe',ps:[{slot:'A',shot:SH.body(S.me,{f:2.4,r:0.7,y:0.9,ly:0.8,fov:46}),fx:'glow',tag:'停下來'},{slot:'B',shot:SH.part(S.me,'chest',{f:0.9,r:0.15,y:0.15,fov:38}),fx:'glow',tag:'深呼吸三秒'}]}),
   },
   wall:{
     insert:[S=>({shot:SH.part(S.me,'rightHand',{f:0.6,r:0.3,y:0.1,fov:34}),tag:'手上的石頭'}),S=>({shot:()=>aim(_c3.set(0,3.4,-4.2),_c1.set(0.4,0.8,-10.6),46),tag:'牆外面，是什麼？'})],
     run:S=>[{slot:'A',shot:()=>aim(_c3.set(3.6,1.35,-3.3),_c1.set(1.1,0.95,-6.3),46),fx:'speed',tag:'比賽開始！',sfx:'噠噠'},{slot:'B',shot:()=>aim(_c3.set(0,3.4,-4.2),_c1.set(0.4,0.8,-10.6),46),tag:'牆的另一邊'}],
-    approach:(S,v)=>({pose:'throw',stage:null,ps:[{slot:'A',shot:SH.part(S.me,'rightHand',{f:0.62,r:0.45,y:0.12,fov:32}),fx:'speed',tag:'握著石頭，用力揮臂',sfx:'咻——'},{slot:'B',shot:SH.body(S.me,{f:1.9,r:1.6,y:0.9,ly:0.85,fov:42}),fx:'speed',tag:'往牆外丟出去'}],burst:{t:'丟！',icon:'🪨'}}),
+    approach:(S,v)=>({pose:'throwWind',stage:null,ps:[{slot:'A',shot:SH.body(S.me,{f:-0.45,r:1.15,y:1.5,ly:1.35,fov:50}),fx:'speed',tag:'握著石頭，用力揮臂',sfx:'咻——'},{slot:'B',shot:SH.body(S.me,{f:1.9,r:1.6,y:0.9,ly:0.85,fov:42}),fx:'speed',tag:'往牆外丟出去'}],burst:{t:'丟！',icon:'🪨'}}),
     impact:S=>{const P=S.dmg[1].userData.hit;return{ps:[{slot:'A',shot:()=>aim(_c3.set(P.x-0.55,P.y+0.42,P.z+0.55),_c1.set(P.x,P.y,P.z),34),fx:'impact',tag:'引擎蓋凹了一塊'},{slot:'B',shot:()=>aim(_c3.set(P.x+3.2,P.y+0.3,P.z-2.4),_c1.set(P.x,P.y-0.4,P.z),40),fx:'impact',tag:'刮痕和凹痕'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]};},
     safe:S=>({pose:'squat',ps:[{slot:'A',shot:()=>aim(_c3.set(3.4,1.35,-3.4),_c1.set(1.1,0.9,-6.3),46),fx:'glow',tag:'放下石頭'},{slot:'B',shot:SH.part(S.me,'rightHand',{f:0.6,r:0.3,y:0.1,fov:34}),fx:'glow',tag:'不丟'}]}),
   },
   play:{
     insert:[S=>({shot:()=>aim(_c3.set(-3.2,0.9,-4.2),_c1.set(0,0.6,-6.4),46),tag:'一公尺高的平台'}),S=>({shot:SH.body(S.mei,{f:2.2,r:0.7,y:0.9,ly:0.8,fov:36}),tag:'下面有人經過'})],
-    run:S=>[{slot:'A',shot:SH.body(S.me,{f:2.6,r:0.9,y:0.5,ly:1.0,fov:50}),fx:'speed',tag:'爬上網梯',sfx:'沙沙'},{slot:'B',shot:SH.part(S.me,'rightHand',{f:0.6,r:0.3,y:0.1,fov:34}),fx:'speed',tag:'抓緊繩網'}],
-    approach:(S,v)=>({pose:'jump',stage:null,ps:[{slot:'A',shot:()=>aim(_c3.set(4.2,1.4,-9.4),_c1.set(1.4,1.6,-8),46),fx:'speed',tag:'從高處往下跳',sfx:'咻——'},{slot:'B',shot:SH.part(S.mei,'head',{f:1.1,r:0.4,y:0.2,fov:40}),tag:'下面的同學'}],burst:{t:'跳！',icon:'🦘'}}),
-    impact:S=>({ps:[{slot:'A',shot:()=>aim(_c3.set(4.3,0.7,-6.4),_c1.set(2.1,0.5,-8),44),fx:'impact',tag:'壓到同學'},{slot:'B',shot:SH.part(S.mei,'head',{f:1.0,r:0.35,y:0.12,fov:40}),fx:'impact',tag:'小美'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]}),
+    run:S=>[{slot:'A',shot:SH.body(S.me,{f:2.6,r:0.9,y:0.5,ly:1.0,fov:50}),fx:'speed',tag:'爬上網梯',sfx:'沙沙'},{slot:'B',shot:SH.body(S.me,{f:-1.0,r:0.7,y:1.5,ly:1.25,fov:46}),fx:'speed',tag:'抓緊繩網'}],
+    approach:(S,v)=>({pose:'jumpReady',stage:null,ps:[{slot:'A',shot:()=>aim(_c3.set(4.2,1.4,-9.4),_c1.set(1.4,1.6,-8),46),fx:'speed',tag:'從高處往下跳',sfx:'咻——'},{slot:'B',shot:SH.body(S.mei,{f:2.0,r:0.8,y:1.1,ly:0.95,fov:34}),tag:'下面的同學'}],burst:{t:'跳！',icon:'🦘'}}),
+    impact:S=>({ps:[{slot:'A',shot:()=>aim(_c3.set(4.2,1.3,-6.2),_c1.set(1.8,1.0,-7.8),44),fx:'impact',tag:'壓到同學'},{slot:'B',shot:SH.fixed([3.7,1.0,-9.8],S.mei,null,{ly:0.45,fov:40}),fx:'impact',tag:'小美'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]}),
     safe:S=>({pose:'climb',ps:[{slot:'A',shot:()=>aim(_c3.set(4.4,2.2,-9.0),_c1.set(1.0,1.7,-8),46),fx:'glow',tag:'先看清楚'},{slot:'B',shot:SH.part(S.me,'head',{f:0.9,r:0.1,y:0.1,fov:36}),fx:'glow',tag:'問：下面有人嗎？'}]}),
   },
 };
@@ -1980,7 +1989,7 @@ function buildCourt(){
   const B=Batch(),mats=ENV_MATS();Object.assign(mats,{conc:toon('#ffffff',{map:T2.conc}),tile:toon('#ffffff',{map:T2.tile}),hoop:toon('#e8e8ee'),orange:toon('#e8822c'),board:toon('#f6f6fa'),fence:toon('#4d6b78'),sign:toon('#e9f2ff')});
   sc.add(gplane(120,120,TEX.pave,-0.03,1));const ct=gplane(15,26,T2.court,0.01);ct.position.z=-8;sc.add(ct);
   /* covered walkway on the east side: slab, roof, concrete columns, low ledge, tiled wall */
-  B.put('conc',uvBox(3.7,0.12,26),M4(9.5,0.03,-11));B.put('cream',uvBox(4.0,0.26,26.4),M4(9.5,3.3,-11));B.put('roof',uvBox(4.2,0.1,26.6),M4(9.5,3.5,-11));
+  B.put('conc',uvBox(3.7,0.12,26),M4(9.5,-0.045,-11));B.put('cream',uvBox(4.0,0.26,26.4),M4(9.5,3.3,-11));B.put('roof',uvBox(4.2,0.1,26.6),M4(9.5,3.5,-11));
   [-3,-8,-13,-18,-23].forEach(z=>{B.put('conc',uvBox(0.5,3.2,0.5),M4(7.75,1.6,z));B.put('conc',uvBox(0.62,0.22,0.62),M4(7.75,0.11,z));B.put('conc',uvBox(0.6,0.16,0.6),M4(7.75,3.1,z));});
   B.put('conc',uvBox(0.3,0.45,15),M4(7.75,0.22,-15.5));
   B.put('tile',uvBox(0.3,3.3,26),M4(11.35,1.65,-11));B.put('cream',uvBox(0.34,0.1,26),M4(11.35,0.8,-11));B.put('green',uvBox(0.04,0.55,26),M4(11.18,0.4,-11));
@@ -2163,7 +2172,7 @@ function buildWall(){
 function buildPlay(){
   const sc=new THREE.Scene();addPano(sc,0,1.2);addLights(sc,{shadowR:30,dir:[8,66,10],target:[0,0,-8],sun:2.2});
   const B=Batch(),mats=ENV_MATS();Object.assign(mats,{rub:toon('#ffffff',{map:T2.rubber}),rope:toon('#f2c230'),holdA:toon('#ffd23f'),holdB:toon('#3d8fe0'),holdC:toon('#47b86a'),holdD:toon('#ffffff'),redw:toon('#d4403f'),yelp:toon('#f3c21e'),bluep:toon('#2d6fd0'),fenceg:toon('#3f8c88')});
-  sc.add(gplane(90,60,TEX.pave,-0.03,1));const rb=gplane(12,12,T2.rubber,0.02);rb.position.set(0.5,0.02,-7);sc.add(rb);
+  sc.add(gplane(90,60,TEX.pave,-0.03,1));const rb=gplane(12,12,T2.rubber,0.004);rb.position.set(0.5,0.02,-7);sc.add(rb);
   B.put('curb',uvBox(12.4,0.12,0.25),M4(0.5,0.06,-1.0));B.put('curb',uvBox(12.4,0.12,0.25),M4(0.5,0.06,-13.0));B.put('curb',uvBox(0.25,0.12,12),M4(-5.7,0.06,-7));B.put('curb',uvBox(0.25,0.12,12),M4(6.7,0.06,-7));
   /* platform 1.0 m above the ground (red), posts, railings */
   B.put('redw',uvBox(2.4,0.12,2.4),M4(0,0.97,-8));
@@ -2245,7 +2254,7 @@ CASES.court={id:'court',cmDanger:{pose:'fist',t:'危險！',icon:'⚠️',tag:'�
 };
 
 /* ---- 2. 圍牆邊的石頭 ---- */
-CASES.wall={id:'wall',cmDanger:{pose:'throw',t:'丟！',icon:'🪨',tag:'用力把石頭丟過牆',sfx:'咻——',vtag:'牆外的車'},mock:'你又被我騙了！石頭砸壞了好幾輛車，你和爸爸媽媽要一起賠 5 萬元！',roles:['xiaokai','teacher'],amb:'campus',no:2,ref:'',title:'圍牆邊的石頭',icon:'🧱',badge:'石頭不丟徽章',badgeIcon:'🪨',
+CASES.wall={id:'wall',cmDanger:{pose:'throwWind',t:'丟！',icon:'🪨',tag:'用力把石頭丟過牆',sfx:'咻——',vtag:'牆外的車'},mock:'你又被我騙了！石頭砸壞了好幾輛車，你和爸爸媽媽要一起賠 5 萬元！',roles:['xiaokai','teacher'],amb:'campus',no:2,ref:'',title:'圍牆邊的石頭',icon:'🧱',badge:'石頭不丟徽章',badgeIcon:'🪨',
   desc:'兩名學生在圍牆邊，把石頭丟過圍牆，砸到牆外停放的車輛，造成多處刮痕與凹痕。',award:'判賠 5 萬元，父母連帶賠償',laws:[0,1,3],
   preview:'午後的圍牆邊，地上有好多小石頭……',hint:'牆外面看不到的地方，有什麼可能被你丟中？',
   lesson:'石頭不要丟！圍牆那一邊看不到，丟出去的石頭可能砸到車子，更可能砸到人。',
@@ -2255,16 +2264,21 @@ CASES.wall={id:'wall',cmDanger:{pose:'throw',t:'丟！',icon:'🪨',tag:'用力�
     S.hit=(i)=>{S.dmg[i].visible=true;};
     /* the stone held in the 3D model's right hand (seen in the panel shots) */
     S.handStone=new THREE.Mesh(new THREE.IcosahedronGeometry(0.045,1),toon('#8b857a'));S.handStone.visible=false;
-    S.gripStone=on=>{const st=S.handStone,bn=S.me.B&&S.me.B.rightHand;if(!bn)return;if(st.parent!==bn){bn.add(st);const ws=bn.getWorldScale(new V3());st.scale.set(1/ws.x,1/ws.y,1/ws.z);st.position.set(0.0,-0.03/ws.y,0.0);st.position.x=(S.me.B.rightHand.position.x>0?1:-1)*0.07/ws.x;}st.visible=on;};
+    const holdIn=(c,st,on)=>{const bn=c.B&&c.B.rightHand;if(!bn)return;if(st.parent!==bn){bn.add(st);const ws=bn.getWorldScale(new V3());st.scale.set(1/ws.x,1/ws.y,1/ws.z);st.position.set(0.0,-0.03/ws.y,0.0);st.position.x=(bn.position.x>0?1:-1)*0.07/ws.x;}st.visible=on;};
+    S.gripStone=on=>holdIn(S.me,S.handStone,on);
+    S.kaiStone=new THREE.Mesh(new THREE.IcosahedronGeometry(0.045,1),toon('#8b857a'));S.kaiStone.visible=false;S.kaiGrip=on=>holdIn(S.kai,S.kaiStone,on);
+    /* where the model's stone is right now, with the model staged where the panels draw it */
+    S.handWorld=()=>{const me=S.me,st=stageRig(),rp=me.root.position.clone(),rr=me.root.rotation.clone();me.root.position.set(st.x,st.y,st.z);me.root.rotation.set(0,st.yaw,0);me.root.updateMatrixWorld(true);
+      const p=S.handStone.getWorldPosition(new V3());me.root.position.copy(rp);me.root.rotation.copy(rr);me.root.updateMatrixWorld(true);return p;};
     /* slow-motion follow shot of the thrown stone, ending on the dent */
     S.strike=async(i,from,hi)=>{const g=S.dmg[i],P=g.userData.hit.clone(),m=S.stone,sc=S.scene;
-      m.visible=true;m.scale.setScalar(0.6);slowmo(0.28,4.5);SFX.drive&&SFX.fly();rig.fp=false;rig.bob=0;
+      m.visible=true;m.scale.setScalar(0.6);slowmo(0.28,4.5);SFX.drive&&SFX.fly();const st0=stageRig();let hid=false;m.position.copy(from);
       const chase=new V3(),look=new V3(),closeP=new V3(P.x+1.15,P.y+0.62,P.z+0.95),closeL=P.clone();
-      await tween(1.25,k=>{const x=lerp(from.x,P.x,k),z=lerp(from.z,P.z,k),y=lerp(from.y,P.y+0.05,k)+4*hi*k*(1-k);m.position.set(x,y,z);m.rotation.x+=0.35;m.rotation.z+=0.2;
+      await tween(1.25,k=>{if(!hid&&k>0.16){hid=true;cmHide();hand.visible=false;rig.fp=false;rig.bob=0;}const x=lerp(from.x,P.x,k),z=lerp(from.z,P.z,k),y=lerp(from.y,P.y+0.05,k)+4*hi*k*(1-k);m.position.set(x,y,z);m.rotation.x+=0.35;m.rotation.z+=0.2;
         chase.set(x+0.75,y+0.42,z+1.15);if(chase.z>-8.5)chase.y=Math.max(chase.y,2.75);look.set(x,y-0.05,z-0.6);const w=Math.max(0,(k-0.6)/0.4),e=w*w*(3-2*w);
         rig.pos.lerpVectors(chase,closeP,e);rig.look.lerpVectors(look,closeL,e);rig.roll=0.06*Math.sin(k*PI);});
       /* impact: dent pops in, ring wave, chips fly, the stone bounces off */
-      g.visible=true;const D=g.userData.D;D.scale.setScalar(0.01);SFX.dent();impact('#ffffff');rig.shake=0.7;
+      g.visible=true;const D=g.userData.D;D.scale.setScalar(0.01);SFX.dent();CM.stage=()=>st0;impact('#ffffff');rig.shake=0.7;
       const [sx,sy]=fxScreen(m);fxSparks(sx,sy,RM?14:70,'#fff3c4');
       const wave=sc.userData.wave;wave.visible=true;wave.position.set(P.x,P.y+0.02,P.z);
       const ch=sc.userData.chips.map(c=>{c.visible=true;c.position.copy(P);return new V3((Math.random()-.5)*2.4,1.2+Math.random()*1.6,(Math.random()-.5)*2.4);});
@@ -2283,13 +2297,15 @@ CASES.wall={id:'wall',cmDanger:{pose:'throw',t:'丟！',icon:'🪨',tag:'用力�
     {lines:[['nar','你蹲下來，撿起一顆比手掌還小的石頭。']],q:'你要怎麼辦？',devil:'撿起石頭，握緊它！',good:'把石頭放下',cm:{pose:'squat',t:'撿！',icon:'🪨',tag:'撿起石頭',sfx:'喀啦',vtag:'地上的石頭'},
       act:async(S,v)=>{if(!hand.userData.st){const st=new THREE.Mesh(new THREE.IcosahedronGeometry(0.05,1),toon('#8b857a'));st.position.set(0,-0.03,-0.34);hand.children[0].add(st);hand.userData.st=st;}S.me.pose='squat';S.gripStone(true);await moveFP(new V3(0,0.78,-5.5),0.7,'',new V3(0.35,0.0,-6.3),easeIO);handTo(0.2,-0.5,-0.55);await wait(0.9);handTo(0.2,-0.15,-0.45);await wait(0.4);S.me.pose='idle';await moveFP(new V3(0,1.3,-5.4),0.8,'',new V3(1.6,1.25,-8.6),easeIO);}},
     {lines:[['xiaokai','我先丟！你看我的！'],()=>{S.kai.pose='throw';},['devil','換你了！丟遠一點！用力一點！']],q:'你要怎麼做？',devil:'用力把石頭丟過牆！',good:'把石頭放下，告訴小凱牆外可能有車',
-      act:async(S,v)=>{S.kai.pose='throw';await wait(0.45);SFX.pop();await par(S.fly(new V3(2.0,1.6,-7.5),S.dmg[2].userData.hit.clone(),1.0,1.6),moveFP(new V3(0,1.3,-5.4),1.0,'',new V3(1.4,2.4,-8.6),easeIO));
+      act:async(S,v)=>{S.kaiGrip(true);S.kai.pose='throwWind';await wait(0.75);S.kai.pose='throw';await wait(0.13);SFX.pop();const kp=S.kaiStone.getWorldPosition(new V3());S.kaiGrip(false);
+        await par(S.fly(kp,S.dmg[2].userData.hit.clone(),1.0,1.6),moveFP(new V3(0,1.3,-5.4),1.0,'',new V3(1.4,2.4,-8.6),easeIO));
         SFX.dent();S.hit(2);S.kai.pose='cheer';await moveFP(new V3(0,1.3,-5.4),0.6,'',new V3(1.6,1.25,-8.6),easeIO);}}],
   keyIdx:1,
   async tragedy(S,v){
-    S.me.pose='throw';S.gripStone(true);handTo(0.25,0.05,-0.15);await moveFP(new V3(0,1.3,-5.4),0.55,'',new V3(0.3,2.7,-8.4),easeIO);
-    handTo(0.1,-0.02,-0.8);SFX.pop();if(hand.userData.st)hand.userData.st.visible=false;S.gripStone(false);await wait(0.12);cmHide();hand.visible=false;FX.hideAll();
-    await S.strike(1,new V3(0.2,1.75,-6.0),1.45);
+    S.gripStone(true);if(S.me.pose!=='throwWind')S.me.pose='throwWind';handTo(0.25,0.05,-0.15);await moveFP(new V3(0,1.3,-5.4),0.55,'',new V3(0.3,2.7,-8.4),easeIO);
+    S.me.pose='throw';handTo(0.1,-0.02,-0.8);await wait(0.13);
+    SFX.pop();const from=S.handWorld();S.gripStone(false);if(hand.userData.st)hand.userData.st.visible=false;FX.hideAll();
+    await S.strike(1,from,1.45);
     await wait(0.9);slowmo(1,0);rig.shake=0;await fade(1,350);if(hand.userData.st)hand.userData.st.visible=true;
     S.tea.root.visible=true;S.tea.root.position.set(7.0,0,-3.6);S.me.root.visible=true;S.me.root.position.set(-0.2,0,-5.6);S.me.root.rotation.set(0,PI-0.3,0);S.me.pose='idle';S.me.setMood('sad');
     S.kai.pose='idle';S.kai.setMood('sad');camCut(new V3(3.2,7.2,-3.6),new V3(0.6,0.4,-10.8));await fade(0,350);
@@ -2297,7 +2313,7 @@ CASES.wall={id:'wall',cmDanger:{pose:'throw',t:'丟！',icon:'🪨',tag:'用力�
   after:[['nar','牆外傳來「砰、砰」的聲音。三輛停在路邊的車，被石頭砸出好幾道刮痕和小凹痕。'],['teacher','你們兩個，剛剛是不是丟了石頭過去？先不要動，老師去處理。'],['nar','修理車子的費用，要由你和爸爸媽媽一起賠。']],
   regret:[['me','我只是想試試看能不能丟過去……我不知道外面有車……'],()=>FX.devilIn(),['devil','誰叫車子停在那裡？根本不關你的事。']],
   angel:[['angel','看不到的地方，不代表沒有人、沒有車。丟出去的石頭，要為它砸到的東西負責。'],['angel','我讓時間倒轉，回到你剛撿起石頭的時候。這一次，請你自己選。']],
-  keyLines:[()=>{S.gripStone(true);S.me.pose='idle';camCut(new V3(0,1.3,-5.4),new V3(1.6,1.25,-8.6),true);S.dmg.forEach(g=>g.visible=false);S.stone.visible=false;S.kai.pose='idle';S.kai.setMood('joy');},['nar','你手上拿著一顆石頭，小凱在旁邊笑著等你。'],['angel','這一次，你可以自己選。想一想，牆的那一邊，有什麼看不到的東西？']],
+  keyLines:[()=>{S.gripStone(true);S.kaiGrip(false);S.me.pose='idle';camCut(new V3(0,1.3,-5.4),new V3(1.6,1.25,-8.6),true);S.dmg.forEach(g=>g.visible=false);S.stone.visible=false;S.kai.pose='idle';S.kai.setMood('joy');},['nar','你手上拿著一顆石頭，小凱在旁邊笑著等你。'],['angel','這一次，你可以自己選。想一想，牆的那一邊，有什麼看不到的東西？']],
   key:{q:'你手上拿著石頭，小凱要你一起丟，你要怎麼做？',opts:[
     {t:'把石頭放下，對小凱說：「牆外可能有車，不能丟。」',ok:true},
     {t:'先丟一顆小的試試看，應該不會有事',v:'small',after:'小石頭飛過圍牆，「叮」的一聲，打在車子上，留下一道刮痕。',why:'再小的石頭，砸在車上也會留下刮痕；丟出去之前，你根本不知道會落在哪裡。'},
@@ -2312,50 +2328,63 @@ CASES.wall={id:'wall',cmDanger:{pose:'throw',t:'丟！',icon:'🪨',tag:'用力�
 };
 
 /* ---- 3. 遊戲區跳下來 ---- */
-CASES.play={id:'play',cmDanger:{pose:'jump',t:'跳！',icon:'🦘',tag:'從平台往下跳',sfx:'咻——',vtag:'下面經過的同學'},mock:'你又被我騙了！判賠 15 萬元，同學的頭受了傷，你的爸爸媽媽也要一起賠！',roles:['xiaomei','teacher','xiaokai'],amb:'plaza',no:3,ref:'',title:'平台上往下跳',icon:'🧗',badge:'先看再下徽章',badgeIcon:'👀',
+CASES.play={id:'play',cmDanger:{pose:'jumpReady',t:'跳！',icon:'🦘',tag:'從平台往下跳',sfx:'咻——',vtag:'下面經過的同學'},mock:'你又被我騙了！判賠 15 萬元，同學的頭受了傷，你的爸爸媽媽也要一起賠！',roles:['xiaomei','teacher','xiaokai'],amb:'plaza',no:3,ref:'',title:'平台上往下跳',icon:'🧗',badge:'先看再下徽章',badgeIcon:'👀',
   desc:'四年級學生爬到遊戲區的平台上，從高處往下跳，壓到下方經過的同學，同學頭頸部受傷，後腦撞擊地面。',award:'判賠 15 萬元',laws:[0,1,4],
   preview:'午休時間，遊戲區的攀爬平台上，你想跳下去……',hint:'要從高處下來之前，最先要確認什麼？',
   lesson:'從高的地方下來，要先看清楚、問一問「下面有人嗎」，等地面沒人，再面對網子慢慢爬下來。',
   build(){const sc=buildPlay();const S={scene:sc};
     S.mei=npc(sc,'xiaomei',[2.2,0,-16],0);S.kai=npc(sc,'xiaokai',[-3.4,0,-4.2],PI/2);S.tea=npc(sc,'teacher',[7,0,-2.5],-PI/2);S.me=meChar(sc,[-1.2,0,-3.4],0);S.tea.root.visible=false;S.me.root.visible=false;
-    S.actors=[S.mei,S.kai,S.tea,S.me];S.victim=S.mei;S.floor=(x,z)=>(Math.abs(x)<1.1&&z<-6.9&&z>-9.1)?1.0:0;Object.assign(CHAR,{xiaomei:S.mei,xiaokai:S.kai,teacher:S.tea,me:S.me});
-    S.jogOn=()=>{const m=S.mei;m.root.visible=true;m.root.position.set(2.4,0,-15.5);m.root.rotation.set(0,0,0);m.pose='run';m.animSpeed=0.5;S.jog=true;};
-    S.tick=dt=>{if(!S.jog)return;const m=S.mei,p=m.root.position;if(p.z<-10.9){p.z+=0.55*dt;m.animSpeed=0.5;}else m.animSpeed=0.12;};
+    S.actors=[S.mei,S.kai,S.tea,S.me];S.victim=S.mei;S.floor=(x,z)=>(Math.abs(x)<1.1&&z<-6.9&&z>-9.1)?1.0:0;S.eye=1.25;Object.assign(CHAR,{xiaomei:S.mei,xiaokai:S.kai,teacher:S.tea,me:S.me});
+    /* 小美 walks toward the play frame, stops a little away to tie her shoe (squat), and waits */
+    S.meiOn=()=>{const m=S.mei;m.root.visible=true;m.root.position.set(1.9,0,-15.6);m.root.rotation.set(0,0,0);m.setMood('');m.gaitV=1.0;m.pose='walk';S.jog=true;};
+    S.tick=dt=>{if(!S.jog)return;const m=S.mei,p=m.root.position;p.z+=1.0*dt;if(p.z>=-11.6){p.z=-11.6;S.jog=false;m.gaitV=null;m.pose='squat';}};
     S.start=()=>{camCut(new V3(-1.2,1.25,-3.4),new V3(0,1.1,-6.8),true);S.mei.pose='idle';S.kai.pose='idle';S.mei.root.visible=false;S.jog=false;};
     S.cleanup=()=>S.actors.forEach(c=>LIVE.delete(c));return S;},
   intro:[['nar','中午的遊戲時間，你是四年級的學生，和小凱來到遊戲區的攀爬架。'],['xiaokai','這個網梯爬上去，上面的平台很高耶！'],
     ()=>FX.devilIn(),['devil','爬到最高的平台上去！從上面跳下來，一定超帥的！']],
   steps:[
     {lines:[['nar','紅色的平台離地面大約一公尺，前面有一面網梯。']],q:'你要怎麼辦？',devil:'爬上網梯，站到平台上！',good:'慢慢爬上網梯',cm:{pose:'climb',t:'爬！',icon:'🧗',tag:'爬上網梯',sfx:'沙沙',vtag:'攀爬網'},
-      act:async(S,v)=>{S.me.pose='climb';await moveFP(new V3(-0.2,1.3,-4.4),1.4,'walk',new V3(0,1.3,-6.5));await moveFP(new V3(0,2.18,-6.8),1.7,'walk',new V3(0,2.0,-9));await moveFP(new V3(0.85,2.25,-7.7),1.1,'walk',new V3(2.7,0.55,-11.6));S.me.pose='idle';S.jogOn();}},
-    {lines:[['nar','你站在平台邊緣，離地面一公尺高。下面有一位同學正慢慢跑過來。'],['devil','不要管她！直接跳下去，她會閃開的！']],q:'你要怎麼做？',devil:'直接跳下去！',good:'先看清楚下面有沒有人'}],
+      act:async(S,v)=>{await moveFP(new V3(-0.2,1.25,-4.6),1.4,'walk',new V3(0,1.2,-6.5));S.me.pose='climb';await moveFP(new V3(0,2.2,-6.85),2.0,'',new V3(0,2.0,-9));S.me.pose='idle';S.meiOn();await moveFP(new V3(0.85,2.25,-7.7),1.2,'walk',new V3(2.4,0.6,-12.2));}},
+    {lines:[['nar','你站在平台邊緣，離地面一公尺高。下面有一位同學走過來，蹲下來綁鞋帶。'],['devil','不要管她！直接跳下去，她會閃開的！']],q:'你要怎麼做？',devil:'直接跳下去！',good:'先看清楚下面有沒有人'}],
   keyIdx:1,
-  async tragedy(S,v){const m=S.mei;m.root.visible=true;m.animSpeed=0.6;
-    if(v==='yell'){toast('「讓開！我要跳了！」',1500);}
-    if(v==='glance'){await tween(0.5,k=>rig.look.lerp(new V3(2.1,0.3,-10),k*0.4));}
-    S.jog=false;m.animSpeed=0.7;{const d=Math.abs(m.root.position.z+9.3);if(d>0.2)await par(walkTo(m,new V3(2.3,0,-9.3),d/3.0,'run',{keep:true}),tween(d/3.0,k=>rig.look.lerp(_tp.set(2.3,0.5,-8.6),k*0.3)));}
-    S.me.pose='jump';const r0=rig.pos.clone();
-    await par(walkTo(m,new V3(2.25,0,-7.9),0.45,'run',{keep:true}),tween(0.45,k=>{rig.pos.set(lerp(r0.x,1.55,k),lerp(r0.y,1.25,easeI(k)),lerp(r0.z,-7.9,k));rig.look.set(2.25,lerp(0.5,0.9,k),-7.9);}));
-    FX.devilOut();impact();SFX.crack();m.pose='trip';m.setMood('hurt');const q=m.root.position.clone();
-    await par(tween(0.6,k=>{m.root.position.set(q.x+0.1*k,0,q.z+0.3*k);m.root.rotation.set(-1.35*easeI(k),0,0);}),tween(0.7,k=>{rig.pos.y=lerp(1.25,0.6,easeO(k));rig.roll=0.5*easeO(k);rig.look.set(2.5,0.15,-7.7);}));
-    m.pose='lie';m.root.position.set(2.5,0,-7.8);await wait(1.2);await fade(1,350);
-    S.me.root.visible=true;S.me.root.position.set(2.2,0,-9.4);S.me.root.rotation.set(0,0.2,0);S.me.pose='idle';S.me.setMood('sad');
-    S.tea.root.visible=true;S.tea.root.position.set(8.5,0,-9.5);camCut(new V3(4.3,1.3,-4.6),new V3(2.6,0.5,-7.9));await fade(0,350);
-    await walkTo(S.tea,new V3(3.9,0,-8.3),1.2,'run');faceTo(S.tea,2.5,-7.8);},
+  async tragedy(S,v){const m=S.mei;S.jog=false;m.root.visible=true;m.gaitV=null;
+    /* she finishes tying her shoe and walks on along the side of the platform */
+    S.me.pose='jumpReady';if(v==='yell'){toast('「讓開！我要跳了！」',1300);}
+    m.pose='idle';await wait(0.35);const L=new V3(1.9,0,-7.75),Tj=v==='hang'?0.38:0.30;
+    walkTo(m,new V3(1.9,0,-6.6),(L.distanceTo(m.root.position)+1.15)/1.1,'walk',{keep:true});
+    const lead=Math.max(0.2,L.distanceTo(m.root.position)/1.1-Tj);
+    if(v==='glance'){await tween(0.45,k=>rig.look.lerp(_tp.set(1.9,0.2,-10.5),0.12));await tween(0.35,k=>rig.look.lerp(_tp.set(3.5,0.4,-6.0),0.12));await tween(Math.max(0.1,lead-0.8),k=>rig.look.lerp(_tp.set(2.2,0.6,-7.6),0.1));}
+    else if(v==='hang'){await par(moveFP(new V3(1.0,1.7,-7.7),0.6,'',new V3(2.4,0.5,-8.4),easeIO),wait(0.6));await tween(Math.max(0.1,lead-0.6),k=>rig.look.lerp(_tp.copy(m.root.position).setY(0.7),0.08));}
+    else await tween(lead,k=>rig.look.lerp(_tp.copy(m.root.position).setY(0.7),0.08));
+    /* take-off: small hop, ballistic fall; feet meet her head and neck about 0.3 s later */
+    GAME.jumpAt=1;S.me.pose='jump';SFX.fly&&SFX.fly();const r0=rig.pos.clone(),vy=v==='hang'?0:1.2;rig.fp=true;rig.bob=0;
+    await tween(Tj,k=>{const t=k*Tj;rig.pos.set(lerp(r0.x,1.7,k),r0.y+vy*t-4.9*t*t,lerp(r0.z,-7.75,k));rig.look.set(lerp(rig.look.x,2.0,0.2),lerp(rig.look.y,0.9,0.2),lerp(rig.look.z,-7.6,0.2));});
+    FX.devilOut();impact();SFX.thud();SFX.crack();m.pose='trip';m.setMood('hurt');S.me.pose='land';
+    /* she buckles and falls backward; the back of her head hits the ground. I fall past her and land sitting */
+    const q=m.root.position.clone(),r1=rig.pos.clone();
+    await par(tween(0.62,k=>{const e=easeI(k);m.root.rotation.set(-(PI/2-0.05)*e,0,0);m.root.position.set(q.x,0.1*e,q.z+0.15*k);}),
+      tween(0.6,k=>{const t=k*0.6;rig.pos.set(lerp(r1.x,2.75,k),Math.max(0.85,r1.y-1.6*t-4.9*t*t),lerp(r1.z,-6.9,k));rig.roll=0.2*easeO(k);rig.look.set(1.9,lerp(0.6,0.2,k),lerp(-7.8,-8.4,k));}));
+    SFX.thud();rig.shake=0.35;m.pose='lie';
+    await tween(0.3,k=>m.root.rotation.x=-(PI/2-0.05)+0.06*Math.sin(k*PI));
+    await wait(1.0);await fade(1,350);
+    S.me.root.visible=true;S.me.root.position.set(2.8,0,-7.3);S.me.root.rotation.set(0,-2.3,0);S.me.pose='idle';S.me.setMood('sad');S.me.gaitV=null;rig.roll=0;
+    S.tea.root.visible=true;S.tea.root.position.set(-4.5,0,-9.5);camCut(new V3(4.9,1.45,-10.4),new V3(2.2,0.45,-7.9));await fade(0,350);
+    await walkTo(S.tea,new V3(1.0,0,-8.9),1.8,'run');faceTo(S.tea,1.9,-8.6);S.tea.pose='squat';},
   after:[['xiaomei','好痛……我的頭……後面好痛……'],['teacher','小美，不要動！老師馬上叫救護車，也要通知家長。'],['nar','小美的後腦重重撞到地上，躺了好一陣子，才在老師的照顧下慢慢坐起來。']],
   regret:[['me','我只是想跳下來而已……我沒有看到她……'],()=>FX.devilIn(),['devil','她自己跑過來的，誰叫她不看路？']],
   angel:[['angel','從高的地方往下跳，下面的人根本來不及閃。看不看得到，都要先確認。'],['angel','我讓時間倒轉，回到你站在平台上的時候。這一次，請你自己選。']],
-  keyLines:[()=>{S.tea.pose='idle';camCut(new V3(0.85,2.25,-7.7),new V3(2.7,0.55,-11.6),true);S.jogOn();},['nar','你站在平台邊緣，離地面一公尺高。'],['angel','這一次，你可以自己選。想一想，從高處下來之前，要先確認什麼？']],
+  keyLines:[()=>{S.tea.pose='idle';S.tea.root.visible=false;S.me.pose='idle';const m=S.mei;S.jog=false;m.root.position.set(1.9,0,-11.6);m.root.rotation.set(0,0,0);m.pose='squat';m.setMood('');m.gaitV=null;camCut(new V3(0.85,2.25,-7.7),new V3(2.4,0.6,-12.2),true);},['nar','你站在平台邊緣，離地面一公尺高。'],['angel','這一次，你可以自己選。想一想，從高處下來之前，要先確認什麼？']],
   key:{q:'你站在平台上，要怎麼下去？',opts:[
     {t:'先看清楚下面，大聲問「下面有人嗎？」，等人走開，再面對網梯慢慢爬下去',ok:true},
     {t:'看一眼，覺得她走過去了，就直接跳',v:'glance',after:'你只看了一眼，沒想到她就在平台正下方。你已經落下來了。',why:'只看一眼不夠，而且人在移動，你跳下去的時候，她可能剛好走到下面。'},
     {t:'大喊「我要跳了」，然後馬上跳下去',v:'yell',after:'你一喊完就跳，小美嚇了一跳，根本來不及閃開。',why:'大喊之後馬上跳，別人沒有時間反應。'},
     {t:'坐在邊緣，慢慢用手撐著跳下去，比較安全',v:'hang',after:'你用手撐著往下滑，沒看清楚地面，雙腳落在經過的小美身上。',why:'不管用什麼方式往下跳，只要沒先確認地面，就可能壓到人。'}]},
-  async safe(S){const m=S.mei;S.jog=false;m.root.visible=true;m.animSpeed=0.6;
-    await tween(0.8,k=>rig.look.lerp(_tp.set(2.4,0.4,-9.6),k*0.5));toast('「下面有人嗎？」',1600);SFX.pop();
-    await par(walkTo(m,new V3(2.4,0,-4.0),2.6,'run'),tween(2.6,k=>rig.look.set(2.4,0.5,lerp(-9.6,-5.2,k))));m.pose='idle';m.animSpeed=1;
-    S.me.pose='climb';await moveFP(new V3(0,2.2,-7.0),0.9,'walk',new V3(0,1.4,-6.0));await moveFP(new V3(0,1.3,-5.5),1.8,'walk',new V3(0,1.0,-6.6));
-    S.mei.setMood('joy');faceTo(S.mei,0.2,-5.3);await moveFP(new V3(0.2,1.3,-5.3),0.9,'',new V3(2.4,1.05,-4.0),easeIO);},
+  async safe(S){const m=S.mei;S.jog=false;m.root.visible=true;m.gaitV=null;
+    await tween(0.8,k=>rig.look.lerp(_tp.set(1.9,0.4,-11.2),0.1));toast('「下面有人嗎？」',1600);SFX.pop();
+    m.pose='idle';await wait(0.5);m.pose='wave';faceTo(m,0.85,-7.7);await wait(0.9);
+    await par(walkTo(m,new V3(1.9,0,-4.2),4.6,'walk'),tween(4.6,k=>rig.look.set(lerp(rig.look.x,1.9,0.1),0.55,lerp(rig.look.z,m.root.position.z,0.1))));m.pose='idle';
+    await moveFP(new V3(0,2.2,-7.0),0.9,'walk',new V3(0,1.6,-7.6));S.me.pose='climb';await moveFP(new V3(0,1.25,-5.6),2.2,'',new V3(0,1.3,-7.0));S.me.pose='idle';
+    S.mei.setMood('joy');faceTo(S.mei,0.2,-5.3);await moveFP(new V3(0.2,1.25,-5.3),0.9,'',new V3(1.9,1.05,-4.2),easeIO);},
   safeLines:[['xiaomei','學長，剛剛你有看到我嗎？'],['me','我先問了「下面有人嗎」，等你過去，才面對網梯慢慢爬下來的。'],['xiaomei','太好了，我差點就走到下面了！'],
     async S=>{S.mei.pose='cheer';},
     ['angel','答對了！從高處下來之前，先看、先問、先等，再面對網梯慢慢爬下來，大家都平安。']],
