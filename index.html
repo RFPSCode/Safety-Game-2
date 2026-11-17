@@ -2250,7 +2250,7 @@ CASES.court={id:'court',cmDanger:{pose:'fist',t:'危險！',icon:'⚠️',tag:'�
     await par(tween(0.1,()=>{}),(async()=>{S.me.pose='breathe';})());
     await tween(2.4,k=>{rig.look.set(lerp(rig.look.x,3.0,k*0.1),lerp(rig.look.y,1.3,k*0.1),lerp(rig.look.z,-6.0,k*0.1));rig.pos.y=1.34+Math.sin(k*PI*2)*0.02;});
     walkTo(yu,new V3(9.2,0,-16.5),4,'walk');await par(walkTo(S.tea,new V3(0.6,0,-2.2),1.0,'walk'),moveFP(new V3(0.4,1.34,0.4),1.8,'walk',new V3(0.6,1.3,-2.4)));},
-  safeLines:[['teacher','怎麼了？你的臉色看起來不太好。'],['me','小宇拿走我們的球，我很生氣，可是我知道不能追過去。'],['teacher','你先冷靜下來，做得很好。老師幫你去跟他說，把球拿回來。'],
+  safeLines:[['teacher','怎麼了？你的臉色看起來不太好。'],['me','小宇把我們的球拿走了，我很生氣，可是我知道不能追過去。'],['teacher','你先冷靜下來，做得很好。老師幫你去跟他說，把球拿回來。'],
     async S=>{S.tea.pose='idle';await walkTo(S.tea,new V3(5.0,0,-5.2),1.8,'walk');S.kai.pose='cheer';},
     ['angel','答對了！生氣的時候先停下來，慢慢呼吸三秒，再去找老師。不追、不貼近、不動手，大家都平安。']],
 };
@@ -2312,7 +2312,7 @@ CASES.wall={id:'wall',cmDanger:{pose:'throwWind',t:'丟！',icon:'🪨',tag:'用
     S.tea.root.visible=true;S.tea.root.position.set(7.0,0,-3.6);S.me.root.visible=true;S.me.root.position.set(-0.2,0,-5.6);S.me.root.rotation.set(0,PI-0.3,0);S.me.pose='idle';S.me.setMood('sad');
     S.kai.pose='idle';S.kai.setMood('sad');camCut(new V3(3.2,7.2,-3.6),new V3(0.6,0.4,-10.8));await fade(0,350);
     await walkTo(S.tea,new V3(2.9,0,-6.2),1.4,'walk');faceTo(S.tea,0.6,-6.4);},
-  after:[['nar','牆外傳來「砰、砰」的聲音。三輛停在路邊的車，被石頭砸出好幾道刮痕和小凹痕。'],['teacher','你們兩個，剛剛是不是丟了石頭過去？先不要動，老師去處理。'],['nar','修理車子的費用，要由你和爸爸媽媽一起賠。']],
+  after:[['nar','牆外傳來「砰、砰」的聲音。三輛停在路邊的車，被石頭砸出好幾道刮痕和小凹痕。'],['teacher','你們兩個，剛剛是不是丟了石頭過去？車主已經報警了，老師通知家長帶你們去警察局。'],['nar','修理車子的費用，要由你和爸爸媽媽一起賠。']],
   regret:[['me','我只是想試試看能不能丟過去……我不知道外面有車……'],()=>FX.devilIn(),['devil','誰叫車子停在那裡？根本不關你的事。']],
   angel:[['angel','看不到的地方，不代表沒有人、沒有車。丟出去的石頭，要為它砸到的東西負責。'],['angel','我讓時間倒轉，回到你剛撿起石頭的時候。這一次，請你自己選。']],
   keyLines:[()=>{S.gripStone(true);S.kaiGrip(false);S.me.pose='idle';camCut(new V3(0,1.3,-5.4),new V3(1.6,1.25,-8.6),true);S.dmg.forEach(g=>g.visible=false);S.stone.visible=false;S.kai.pose='idle';S.kai.setMood('joy');},['nar','你手上拿著一顆石頭，小凱在旁邊笑著等你。'],['angel','這一次，你可以自己選。想一想，牆的那一邊，有什麼看不到的東西？']],
@@ -2401,7 +2401,7 @@ CASES.play={id:'play',cmDanger:{pose:'jumpReady',t:'跳！',icon:'🦘',tag:'從
     const [E,L]=S.ladder(5,false);E[0].copy(rig.pos);await S.climb(E,L,0.66);S.me.pose='idle';
     await moveFP(new V3(0,1.25,-4.8),0.6,'walk',new V3(0,1.2,-6.5));
     S.mei.setMood('joy');faceTo(S.mei,0.2,-4.9);await camTo(new V3(0.2,1.25,-4.9),new V3(1.9,1.05,-4.2),0.9);},
-  safeLines:[['xiaomei','學長，剛剛你有看到我嗎？'],['me','我先問了「下面有人嗎」，等你過去，才面對網梯慢慢爬下來的。'],['xiaomei','太好了，我差點就走到下面了！'],
+  safeLines:[['xiaomei','學長，剛剛你有看到我嗎？'],['me','我先問了「下面有人嗎」，等你過去，才面對網梯慢慢爬下來的。'],['xiaomei','太好了，我差點就走到攀爬架下面了！'],
     async S=>{S.mei.pose='cheer';},
     ['angel','答對了！從高處下來之前，先看、先問、先等，再面對網梯慢慢爬下來，大家都平安。']],
 };
