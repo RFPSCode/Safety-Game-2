@@ -4,7 +4,7 @@
  "id": "campus-safety-time-machine-ep2",
  "title": "校園安全時光機 Episode 2",
  "description": "校園安全教育 3D 冒險遊戲第二集的全部台詞（球場追趕、圍牆丟石頭、遊戲區跳下）。",
- "updated": "2026-11-18T09:00:00+08:00",
+ "updated": "2026-11-18T10:00:00+08:00",
  "engine": {
   "model": "qwen3-tts-customvoice",
   "language": "chinese",
@@ -150,7 +150,7 @@
   {
    "id": "001",
    "role": "devil",
-   "text": "你又被我騙了！判賠 164,380 元，同學的頭和肩膀都受傷了，你的爸爸媽媽也要一起賠！",
+   "text": "你又被我騙了！判賠十六萬四千元，同學的頭和肩膀都受傷了，你的爸爸媽媽也要一起賠！",
    "instruct": "得意地大笑、嘲諷"
   },
   {
