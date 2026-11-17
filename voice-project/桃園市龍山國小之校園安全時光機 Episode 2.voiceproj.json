@@ -1,0 +1,675 @@
+{
+ "format": "voice-studio-project",
+ "version": 1,
+ "id": "campus-safety-time-machine-ep2",
+ "title": "校園安全時光機 Episode 2",
+ "description": "校園安全教育 3D 冒險遊戲第二集的全部台詞（球場追趕、圍牆丟石頭、遊戲區跳下）。",
+ "updated": "2026-11-17T12:00:00+08:00",
+ "engine": {
+  "model": "qwen3-tts-customvoice",
+  "language": "chinese",
+  "temperature": 0.8
+ },
+ "instruct": "用台灣口音的國語說話，咬字清楚自然",
+ "pronunciation": [],
+ "roles": [
+  {
+   "id": "nar",
+   "name": "旁白",
+   "speaker": "uncle_fu",
+   "instruct": "說故事的語氣",
+   "post": {
+    "enabled": true,
+    "preset": "一般男聲",
+    "pitchHz": 0,
+    "pitchLock": 0.6,
+    "formant": 1.0
+   }
+  },
+  {
+   "id": "teacher",
+   "name": "王老師",
+   "speaker": "serena",
+   "instruct": "",
+   "post": {
+    "enabled": true,
+    "preset": "一般女聲",
+    "pitchHz": 0,
+    "pitchLock": 0.6,
+    "formant": 1.0
+   }
+  },
+  {
+   "id": "devil",
+   "name": "小惡魔",
+   "speaker": "ryan",
+   "instruct": "",
+   "post": {
+    "enabled": true,
+    "preset": "惡魔",
+    "pitchHz": 0,
+    "pitchLock": 0.6,
+    "formant": 0.9,
+    "octDown": 0.2,
+    "growl": 0.12,
+    "bassDb": 2,
+    "echoMs": 100,
+    "echoFeedback": 0.25,
+    "echoMix": 0.2
+   }
+  },
+  {
+   "id": "angel",
+   "name": "小天使",
+   "speaker": "serena",
+   "instruct": "",
+   "post": {
+    "enabled": true,
+    "preset": "天使",
+    "pitchHz": 0,
+    "pitchLock": 0.6,
+    "formant": 1.08,
+    "octUp": 0.18,
+    "trebleDb": 3,
+    "reverb": 0.35
+   }
+  },
+  {
+   "id": "me_b",
+   "name": "主角男生(五年級)",
+   "speaker": "aiden",
+   "instruct": "",
+   "post": {
+    "enabled": true,
+    "preset": "自訂",
+    "pitchHz": 255,
+    "pitchLock": 0.6,
+    "formant": 1.15,
+    "trebleDb": 1
+   }
+  },
+  {
+   "id": "me_g",
+   "name": "主角女生(五年級)",
+   "speaker": "vivian",
+   "instruct": "",
+   "post": {
+    "enabled": true,
+    "preset": "自訂",
+    "pitchHz": 275,
+    "pitchLock": 0.6,
+    "formant": 1.16,
+    "trebleDb": 1
+   }
+  },
+  {
+   "id": "xiaokai",
+   "name": "小凱(五年級)",
+   "speaker": "aiden",
+   "instruct": "",
+   "post": {
+    "enabled": true,
+    "preset": "自訂",
+    "pitchHz": 240,
+    "pitchLock": 0.6,
+    "formant": 1.13,
+    "trebleDb": 1
+   }
+  },
+  {
+   "id": "xiaoyu",
+   "name": "小宇(二年級)",
+   "speaker": "aiden",
+   "instruct": "",
+   "post": {
+    "enabled": true,
+    "preset": "自訂",
+    "pitchHz": 290,
+    "pitchLock": 0.6,
+    "formant": 1.22,
+    "trebleDb": 1
+   }
+  },
+  {
+   "id": "xiaomei",
+   "name": "小美(二年級)",
+   "speaker": "vivian",
+   "instruct": "",
+   "post": {
+    "enabled": true,
+    "preset": "自訂",
+    "pitchHz": 310,
+    "pitchLock": 0.6,
+    "formant": 1.2,
+    "speed": 1.03,
+    "trebleDb": 2
+   }
+  }
+ ],
+ "lines": [
+  {
+   "id": "001",
+   "role": "devil",
+   "text": "你又被我騙了！判賠 164,380 元，同學的頭和肩膀都受傷了，你的爸爸媽媽也要一起賠！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "002",
+   "role": "nar",
+   "text": "下課了，你和小凱在籃球場邊玩球。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "003",
+   "role": "xiaokai",
+   "text": "哎呀，我踢太用力，球飛到小宇那邊去了！",
+   "instruct": "興奮地大聲喊"
+  },
+  {
+   "id": "004",
+   "role": "nar",
+   "text": "小宇撿起球，看了你們一眼，抱著球轉身就走。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "005",
+   "role": "teacher",
+   "text": "你們好好說，球沒拿回來，也不要生氣吵架喔。",
+   "instruct": "很擔心"
+  },
+  {
+   "id": "006",
+   "role": "devil",
+   "text": "他一定是故意的！去追他，把球搶回來！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "007",
+   "role": "nar",
+   "text": "你握緊了拳頭，胸口悶悶的，越想越生氣。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "008",
+   "role": "devil",
+   "text": "握緊拳頭，跟上去，叫他把球還你！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "009",
+   "role": "devil",
+   "text": "別讓他跑掉！貼近一點，跟緊他！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "010",
+   "role": "devil",
+   "text": "貼著他的腳跟，緊緊跟著！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "011",
+   "role": "xiaoyu",
+   "text": "好痛……我的頭，還有肩膀……好痛……",
+   "instruct": "開心、語氣輕快"
+  },
+  {
+   "id": "012",
+   "role": "teacher",
+   "text": "小宇，先不要動！老師馬上叫救護車，也通知你們的家長。",
+   "instruct": "很擔心"
+  },
+  {
+   "id": "013",
+   "role": "nar",
+   "text": "小宇送到醫院治療，住了好一段時間，還要請人照顧。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "014",
+   "role": "me_b",
+   "text": "我只是想把球拿回來……我沒有想要他受傷……",
+   "instruct": "很內疚，快要哭出來"
+  },
+  {
+   "id": "015",
+   "role": "me_g",
+   "text": "我只是想把球拿回來……我沒有想要他受傷……",
+   "instruct": "很內疚，快要哭出來"
+  },
+  {
+   "id": "016",
+   "role": "devil",
+   "text": "是他拿走你的球，是他先不對，不關你的事。",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "017",
+   "role": "angel",
+   "text": "就算對方先不對，也不能用追趕、貼近的方式討回來。生氣的時候，更要冷靜。",
+   "instruct": "溫柔、親切"
+  },
+  {
+   "id": "018",
+   "role": "angel",
+   "text": "我讓時間倒轉，回到你剛剛握緊拳頭的時候。這一次，請你自己做出正確的選擇！",
+   "instruct": "溫柔、親切"
+  },
+  {
+   "id": "019",
+   "role": "nar",
+   "text": "小宇抱著球走了，你握緊了拳頭，心跳好快。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "020",
+   "role": "angel",
+   "text": "這一次，你可以自己選。生氣的時候，想一想最先要做的事。",
+   "instruct": "溫柔、親切"
+  },
+  {
+   "id": "021",
+   "role": "nar",
+   "text": "你一路追在他後面，越追越近，小宇緊張地加快了腳步。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "022",
+   "role": "nar",
+   "text": "你邊走邊罵，小宇回頭看你，腳步慌亂，你一步跟上，踩到他的鞋跟。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "023",
+   "role": "nar",
+   "text": "你走在他身後一直戳他，他閃躲時被你踩到鞋跟，整個人往旁邊倒下。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "024",
+   "role": "teacher",
+   "text": "怎麼了？你的臉色看起來不太好。",
+   "instruct": "很擔心"
+  },
+  {
+   "id": "025",
+   "role": "me_b",
+   "text": "小宇拿走我們的球，我很生氣，可是我知道不能追過去。",
+   "instruct": "很內疚，快要哭出來"
+  },
+  {
+   "id": "026",
+   "role": "me_g",
+   "text": "小宇拿走我們的球，我很生氣，可是我知道不能追過去。",
+   "instruct": "很內疚，快要哭出來"
+  },
+  {
+   "id": "027",
+   "role": "teacher",
+   "text": "你先冷靜下來，做得很好。老師幫你去跟他說，把球拿回來。",
+   "instruct": "很擔心"
+  },
+  {
+   "id": "028",
+   "role": "angel",
+   "text": "答對了！生氣的時候先停下來，慢慢呼吸三秒，再去找老師。不追、不貼近、不動手，大家都平安。",
+   "instruct": "溫柔、親切"
+  },
+  {
+   "id": "029",
+   "role": "devil",
+   "text": "你又被我騙了！石頭砸壞了好幾輛車，你和爸爸媽媽要一起賠 5 萬元！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "030",
+   "role": "xiaokai",
+   "text": "teacher",
+   "instruct": "興奮地大聲喊"
+  },
+  {
+   "id": "031",
+   "role": "nar",
+   "text": "午後，你和小凱在學校的圍牆邊玩。圍牆好高，上面是一整排磁磚。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "032",
+   "role": "xiaokai",
+   "text": "你看，地上好多小石頭！我們來比賽，誰丟得過這道牆！",
+   "instruct": "興奮地大聲喊"
+  },
+  {
+   "id": "033",
+   "role": "devil",
+   "text": "牆外面什麼都沒有啦！誰會在意？丟過去看看，一定很好玩！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "034",
+   "role": "nar",
+   "text": "你蹲下來，撿起一顆比手掌還小的石頭。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "035",
+   "role": "devil",
+   "text": "撿起石頭，握緊它！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "036",
+   "role": "xiaokai",
+   "text": "我先丟！你看我的！",
+   "instruct": "興奮地大聲喊"
+  },
+  {
+   "id": "037",
+   "role": "devil",
+   "text": "換你了！丟遠一點！用力一點！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "038",
+   "role": "devil",
+   "text": "用力把石頭丟過牆！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "039",
+   "role": "nar",
+   "text": "牆外傳來「砰、砰」的聲音。三輛停在路邊的車，被石頭砸出好幾道刮痕和小凹痕。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "040",
+   "role": "teacher",
+   "text": "你們兩個，剛剛是不是丟了石頭過去？先不要動，老師去處理。",
+   "instruct": "很擔心"
+  },
+  {
+   "id": "041",
+   "role": "nar",
+   "text": "修理車子的費用，要由你和爸爸媽媽一起賠。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "042",
+   "role": "me_b",
+   "text": "我只是想試試看能不能丟過去……我不知道外面有車……",
+   "instruct": "很內疚，快要哭出來"
+  },
+  {
+   "id": "043",
+   "role": "me_g",
+   "text": "我只是想試試看能不能丟過去……我不知道外面有車……",
+   "instruct": "很內疚，快要哭出來"
+  },
+  {
+   "id": "044",
+   "role": "devil",
+   "text": "誰叫車子停在那裡？根本不關你的事。",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "045",
+   "role": "angel",
+   "text": "看不到的地方，不代表沒有人、沒有車。丟出去的石頭，要為它砸到的東西負責。",
+   "instruct": "溫柔、親切"
+  },
+  {
+   "id": "046",
+   "role": "angel",
+   "text": "我讓時間倒轉，回到你剛撿起石頭的時候。這一次，請你自己選。",
+   "instruct": "溫柔、親切"
+  },
+  {
+   "id": "047",
+   "role": "nar",
+   "text": "你手上拿著一顆石頭，小凱在旁邊笑著等你。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "048",
+   "role": "angel",
+   "text": "這一次，你可以自己選。想一想，牆的那一邊，有什麼看不到的東西？",
+   "instruct": "溫柔、親切"
+  },
+  {
+   "id": "049",
+   "role": "nar",
+   "text": "小石頭飛過圍牆，「叮」的一聲，打在車子上，留下一道刮痕。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "050",
+   "role": "nar",
+   "text": "你想丟向空地，可是牆太高，看不到對面，石頭落在車子的車頂上。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "051",
+   "role": "nar",
+   "text": "小凱不敢爬，你們沒看清楚就丟了。石頭落在牆外的車子上。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "052",
+   "role": "me_b",
+   "text": "小凱，牆外面可能有車，看不到的地方不能丟。",
+   "instruct": "很內疚，快要哭出來"
+  },
+  {
+   "id": "053",
+   "role": "me_g",
+   "text": "小凱，牆外面可能有車，看不到的地方不能丟。",
+   "instruct": "很內疚，快要哭出來"
+  },
+  {
+   "id": "054",
+   "role": "xiaokai",
+   "text": "對耶，我都沒想到。好，我們不丟了。",
+   "instruct": "興奮地大聲喊"
+  },
+  {
+   "id": "055",
+   "role": "teacher",
+   "text": "你們兩個說得很對。我們一起把石頭放到草地邊，再去玩別的遊戲。",
+   "instruct": "很擔心"
+  },
+  {
+   "id": "056",
+   "role": "angel",
+   "text": "答對了！石頭不丟。圍牆那一邊你看不到，丟出去的石頭可能砸到車、也可能砸到人。",
+   "instruct": "溫柔、親切"
+  },
+  {
+   "id": "057",
+   "role": "devil",
+   "text": "你又被我騙了！判賠 15 萬元，同學的頭受了傷，你的爸爸媽媽也要一起賠！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "058",
+   "role": "nar",
+   "text": "中午的遊戲時間，你是四年級的學生，和小凱來到遊戲區的攀爬架。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "059",
+   "role": "xiaokai",
+   "text": "這個網梯爬上去，上面的平台很高耶！",
+   "instruct": "興奮地大聲喊"
+  },
+  {
+   "id": "060",
+   "role": "devil",
+   "text": "爬到最高的平台上去！從上面跳下來，一定超帥的！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "061",
+   "role": "nar",
+   "text": "紅色的平台離地面大約一公尺，前面有一面網梯。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "062",
+   "role": "devil",
+   "text": "爬上網梯，站到平台上！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "063",
+   "role": "nar",
+   "text": "你站在平台邊緣，離地面一公尺高。下面有一位同學正慢慢跑過來。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "064",
+   "role": "devil",
+   "text": "不要管她！直接跳下去，她會閃開的！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "065",
+   "role": "devil",
+   "text": "直接跳下去！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "066",
+   "role": "xiaomei",
+   "text": "好痛……我的頭……後面好痛……",
+   "instruct": "調皮地逗弄人"
+  },
+  {
+   "id": "067",
+   "role": "teacher",
+   "text": "小美，不要動！老師馬上叫救護車，也要通知家長。",
+   "instruct": "很擔心"
+  },
+  {
+   "id": "068",
+   "role": "nar",
+   "text": "小美的後腦重重撞到地上，躺了好一陣子，才在老師的照顧下慢慢坐起來。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "069",
+   "role": "me_b",
+   "text": "我只是想跳下來而已……我沒有看到她……",
+   "instruct": "很內疚，快要哭出來"
+  },
+  {
+   "id": "070",
+   "role": "me_g",
+   "text": "我只是想跳下來而已……我沒有看到她……",
+   "instruct": "很內疚，快要哭出來"
+  },
+  {
+   "id": "071",
+   "role": "devil",
+   "text": "她自己跑過來的，誰叫她不看路？",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "072",
+   "role": "angel",
+   "text": "從高的地方往下跳，下面的人根本來不及閃。看不看得到，都要先確認。",
+   "instruct": "溫柔、親切"
+  },
+  {
+   "id": "073",
+   "role": "angel",
+   "text": "我讓時間倒轉，回到你站在平台上的時候。這一次，請你自己選。",
+   "instruct": "溫柔、親切"
+  },
+  {
+   "id": "074",
+   "role": "nar",
+   "text": "你站在平台邊緣，離地面一公尺高。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "075",
+   "role": "angel",
+   "text": "這一次，你可以自己選。想一想，從高處下來之前，要先確認什麼？",
+   "instruct": "溫柔、親切"
+  },
+  {
+   "id": "076",
+   "role": "nar",
+   "text": "你只看了一眼，沒想到她就在平台正下方。你已經落下來了。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "077",
+   "role": "nar",
+   "text": "你一喊完就跳，小美嚇了一跳，根本來不及閃開。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "078",
+   "role": "nar",
+   "text": "你用手撐著往下滑，沒看清楚地面，雙腳落在經過的小美身上。",
+   "instruct": "語氣嚴肅、沉穩"
+  },
+  {
+   "id": "079",
+   "role": "xiaomei",
+   "text": "學長，剛剛你有看到我嗎？",
+   "instruct": "調皮地逗弄人"
+  },
+  {
+   "id": "080",
+   "role": "me_b",
+   "text": "我先問了「下面有人嗎」，等你過去，才面對網梯慢慢爬下來的。",
+   "instruct": "很內疚，快要哭出來"
+  },
+  {
+   "id": "081",
+   "role": "me_g",
+   "text": "我先問了「下面有人嗎」，等你過去，才面對網梯慢慢爬下來的。",
+   "instruct": "很內疚，快要哭出來"
+  },
+  {
+   "id": "082",
+   "role": "xiaomei",
+   "text": "太好了，我差點就走到下面了！",
+   "instruct": "調皮地逗弄人"
+  },
+  {
+   "id": "083",
+   "role": "angel",
+   "text": "答對了！從高處下來之前，先看、先問、先等，再面對網梯慢慢爬下來，大家都平安。",
+   "instruct": "溫柔、親切"
+  },
+  {
+   "id": "084",
+   "role": "angel",
+   "text": "小惡魔，不准你再騙人了！",
+   "instruct": "溫柔、親切"
+  },
+  {
+   "id": "085",
+   "role": "devil",
+   "text": "哇啊！好刺眼……我還會再回來的！",
+   "instruct": "壓低聲音，狡猾地慫恿"
+  },
+  {
+   "id": "086",
+   "role": "angel",
+   "text": "嗚……對不起，這一次我沒能保護大家……",
+   "instruct": "溫柔、親切"
+  }
+ ],
+ "output": {
+  "type": "game-voice-v1",
+  "sampleRate": 24000,
+  "mp3Kbps": 64,
+  "leadSec": 0.5,
+  "gapSec": 0.4,
+  "keyFormat": "{role}|{text}"
+ }
+}
