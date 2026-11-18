@@ -2361,14 +2361,136 @@ function buildWard(sc,HX,HZ){
   const l1=new THREE.PointLight(0xfffaf0,7,9,1.3);l1.position.set(HX-0.6,2.6,HZ-0.4);sc.add(l1);const l2=new THREE.PointLight(0xffffff,3,7,1.5);l2.position.set(HX+1.8,2.4,HZ+1.6);sc.add(l2);
 }
 
+/* ---- 救護車（依照片：中型廂型車、白色車身、紅色腰線與十字、藍色 119 與生命之星、車頂紅色警示燈組） ---- */
+/* front toward +x. L 5.34 m, W 1.99 m, H 1.98 m (+ light bar), wheelbase 3.3 m, wheel r 0.34 m */
+function makeAmbulance(){
+  const G=new THREE.Group(),env=carEnv();
+  const P=(o)=>{const m=new THREE.MeshPhysicalMaterial(o);if(env){m.envMap=env;m.envMapIntensity=o.ei||1;}return m;};
+  const M={paint:P({color:'#f6f7f8',metalness:0.15,roughness:0.28,clearcoat:1,clearcoatRoughness:0.06,ei:1.0}),
+    glass:P({color:'#10181f',metalness:0.1,roughness:0.05,clearcoat:1,ei:1.3}),chrome:P({color:'#eef1f5',metalness:1,roughness:0.12,ei:1.3}),
+    black:P({color:'#15171a',metalness:0.1,roughness:0.55}),plastic:new THREE.MeshStandardMaterial({color:'#24262a',roughness:0.75}),
+    grey:new THREE.MeshStandardMaterial({color:'#5d6167',roughness:0.6}),tire:new THREE.MeshStandardMaterial({color:'#1a1b1d',roughness:0.92}),
+    rim:P({color:'#c9cdd3',metalness:0.85,roughness:0.28}),lens:P({color:'#d9e4ee',metalness:0.2,roughness:0.05,clearcoat:1,transparent:true,opacity:0.55,ei:1.6}),
+    led:new THREE.MeshBasicMaterial({color:'#f2f8ff',toneMapped:false}),amber:new THREE.MeshBasicMaterial({color:'#ffae3d',toneMapped:false}),
+    tail:new THREE.MeshBasicMaterial({color:'#b8141e'}),barBase:P({color:'#dfe3e8',metalness:0.7,roughness:0.3}),
+    plate:new THREE.MeshStandardMaterial({color:'#ffffff',roughness:0.6,map:textTex('救護車',{w:256,h:80,bg:'#f7f7f4',fg:'#1b1b1b',size:50,border:'#1b1b1b'})}),
+    shadow:CARMAT.shadow||carMats('#fff').shadow};
+  const add=(g,m,cast=true)=>{const o=new THREE.Mesh(g,m);o.castShadow=cast;o.receiveShadow=true;G.add(o);return o;};
+  const ext=(sh,depth,bt,bs,m)=>{const g=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:true,bevelThickness:bt,bevelSize:bs,bevelSegments:5,curveSegments:24});g.translate(0,0,-depth/2);g.computeVertexNormals();return add(g,m);};
+  const WB=3.3,FX=1.72,RX=FX-WB,AR=0.43,W=1.99,BT=0.07;
+  /* side profile: vertical rear, long flat roof, raked windscreen, short sloping bonnet, rounded nose */
+  const s=new THREE.Shape();
+  s.moveTo(-2.62,0.34);s.lineTo(RX-AR,0.34);s.absarc(RX,0.36,AR,PI,0,true);s.lineTo(FX-AR,0.34);s.absarc(FX,0.36,AR,PI,0,true);s.lineTo(2.55,0.32);
+  s.quadraticCurveTo(2.68,0.34,2.68,0.52);s.lineTo(2.66,0.86);s.quadraticCurveTo(2.62,1.02,2.4,1.08);s.lineTo(1.78,1.2);
+  s.lineTo(0.96,1.86);s.quadraticCurveTo(0.84,1.96,0.6,1.97);s.lineTo(-2.5,1.97);s.quadraticCurveTo(-2.64,1.96,-2.65,1.84);s.lineTo(-2.66,0.5);s.quadraticCurveTo(-2.66,0.36,-2.62,0.34);
+  const body=ext(s,W-2*BT,BT,0.05,M.paint);const SZ=W/2;
+  G.updateMatrixWorld(true);
+  const rc=new THREE.Raycaster();const surf=(o,d)=>{rc.set(o,d.clone().normalize());const h=rc.intersectObject(body,false)[0];if(!h)return null;return{p:h.point,n:h.face.normal.clone().transformDirection(body.matrixWorld)};};
+  const stick=(mesh,h,off=0.004)=>{mesh.position.copy(h.p).addScaledVector(h.n,off);mesh.lookAt(h.p.clone().addScaledVector(h.n,1));G.add(mesh);return mesh;};
+  /* windscreen */
+  {const sh=new THREE.Shape();sh.moveTo(1.8,1.22);sh.lineTo(0.98,1.84);sh.lineTo(0.98,1.84);sh.lineTo(1.8,1.22);
+   const q=new THREE.BufferGeometry();const y0=1.23,y1=1.83,x0=1.79,x1=0.99,hw=SZ-0.08,v=[x0,y0,-hw,x0,y0,hw,x1,y1,hw,x1,y1,-hw];
+   q.setAttribute('position',new THREE.Float32BufferAttribute(v,3));q.setIndex([0,1,2,0,2,3]);q.computeVertexNormals();const n=new V3(0.6,0.8,0).normalize();
+   const ws=add(q,M.glass,false);ws.position.addScaledVector(n,0.012);
+   const wip=add(new THREE.BoxGeometry(0.02,0.015,0.75),M.black,false);wip.position.set(1.72,1.29,-0.2);wip.rotation.z=0.65;const wip2=wip.clone();wip2.position.z=0.55;G.add(wip2);}
+  /* side livery + windows: one canvas per side (text reads correctly on both) */
+  const LEN=5.4,HGT=2.0,TW=2048,TH=768;
+  const livery=(sd)=>canvasTex(TW,TH,(g,w,h)=>{g.clearRect(0,0,w,h);const X=x=>(sd>0?(x+2.7):(2.7-x))/LEN*w,Y=y=>(HGT-y)/HGT*h,sx=w/LEN,sy=h/HGT;
+    const rect=(x0,x1,y0,y1,c)=>{g.fillStyle=c;const a=X(x0),b=X(x1);g.fillRect(Math.min(a,b),Y(y1),Math.abs(b-a),(y1-y0)*sy);};
+    const poly=(pts,c)=>{g.fillStyle=c;g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(X(x),Y(y)):g.moveTo(X(x),Y(y)));g.closePath();g.fill();};
+    /* windows: front door (raked front edge), sliding door, rear quarter; black B/C pillars */
+    poly([[1.0,1.82],[0.08,1.82],[0.08,1.3],[0.98,1.3],[1.25,1.42]],'#1a222b');
+    rect(-0.02,0.08,1.28,1.86,'#1d2024');
+    poly([[-0.05,1.82],[-1.18,1.82],[-1.18,1.3],[-0.05,1.3]],'#1a222b');rect(-1.24,-1.18,1.28,1.86,'#1d2024');
+    poly([[-1.26,1.82],[-2.46,1.82],[-2.5,1.7],[-2.5,1.3],[-1.26,1.3]],'#1a222b');
+    const gl=g.createLinearGradient(0,Y(1.82),0,Y(1.3));gl.addColorStop(0,'rgba(255,255,255,.18)');gl.addColorStop(.4,'rgba(255,255,255,.02)');gl.addColorStop(1,'rgba(160,190,210,.12)');
+    g.fillStyle=gl;[[0.08,1.0],[-1.18,-0.05],[-2.5,-1.26]].forEach(([a,b])=>{const p=X(a),q=X(b);g.fillRect(Math.min(p,q),Y(1.82),Math.abs(q-p),0.52*sy);});
+    /* sliding-door inner window frame */
+    g.strokeStyle='#30353b';g.lineWidth=5;{const a=X(-0.95),b=X(-0.3);g.strokeRect(Math.min(a,b),Y(1.72),Math.abs(b-a),0.32*sy);}
+    /* 119 + star of life on the rear quarter window */
+    g.fillStyle='#2f3fd8';g.font=`900 ${0.42*sy}px "Arial Black",Arial,sans-serif`;g.textBaseline='middle';g.textAlign='center';g.lineWidth=7;g.strokeStyle='#ffffff';
+    const cx=X(sd>0?-1.65:-1.65);g.strokeText('119',cx,Y(1.56));g.fillText('119',cx,Y(1.56));
+    {const sx0=X(-2.22),sy0=Y(1.56),r=0.2*sy;g.save();g.translate(sx0,sy0);for(let i=0;i<3;i++){g.save();g.rotate(i*PI/3);g.fillStyle='#ffffff';g.fillRect(-r*0.3-4,-r-4,r*0.6+8,2*r+8);g.fillStyle='#2f3fd8';g.fillRect(-r*0.3,-r,r*0.6,2*r);g.restore();}
+      g.strokeStyle='#ffffff';g.lineWidth=4;g.beginPath();g.moveTo(0,-r*0.85);g.lineTo(0,r*0.85);g.stroke();g.beginPath();for(let k=0;k<=20;k++){const yy=-r*0.7+k*r*0.07;g.lineTo(Math.sin(k*0.9)*r*0.13,yy);}g.stroke();g.restore();}
+    /* red livery: thin pin-stripes, wide band, red cross on a white box behind the front door */
+    const R='#e0262c';
+    rect(-2.62,2.2,1.08,1.11,R);rect(-2.62,2.3,0.64,0.67,R);
+    rect(-2.62,2.25,0.75,1.01,R);
+    rect(0.05,0.62,0.7,1.06,'#ffffff');rect(0.28,0.39,0.72,1.04,R);rect(0.12,0.55,0.83,0.93,R);
+    /* ECG trace above the band at the rear */
+    g.strokeStyle=R;g.lineWidth=5;g.beginPath();g.moveTo(X(-2.5),Y(1.14));[[-2.1,1.14],[-2.0,1.14],[-1.95,1.26],[-1.9,1.04],[-1.85,1.2],[-1.8,1.14],[-1.6,1.14],[-1.55,1.22],[-1.5,1.08],[-1.45,1.14],[-1.25,1.14]].forEach(([x,y])=>g.lineTo(X(x),Y(y)));g.stroke();
+    rect(-2.5,-1.25,1.17,1.2,'#25282c');
+    /* panel lines: front door, sliding door, rear; door handles; sliding-door rail */
+    g.strokeStyle='rgba(60,64,70,.55)';g.lineWidth=3;[[0.06,1.86,0.4],[-0.06,1.86,0.4],[-1.22,1.86,0.4],[-2.5,1.86,0.4]].forEach(([x,y0,y1])=>{g.beginPath();g.moveTo(X(x),Y(y0));g.lineTo(X(x),Y(y1));g.stroke();});
+    g.beginPath();g.moveTo(X(1.3),Y(1.2));g.lineTo(X(1.05),Y(0.45));g.stroke();
+    [[-0.18,1.22],[0.85,1.22]].forEach(([x,y])=>{rect(x-0.13,x+0.02,y-0.025,y+0.025,'#c9cdd2');rect(x-0.12,x+0.01,y-0.033,y-0.025,'#5a5f66');});
+    rect(-1.2,-0.08,0.52,0.6,'#2a2d32');rect(-2.45,-1.25,1.27,1.3,'#2a2d32');
+    rect(1.32,1.48,1.04,1.12,'#c4161f');
+  },[1,1],true);
+  [1,-1].forEach(sd=>{const t=livery(sd);const pl=new THREE.Mesh(new THREE.PlaneGeometry(LEN,HGT),new THREE.MeshStandardMaterial({map:t,transparent:true,roughness:0.25,metalness:0.05,polygonOffset:true,polygonOffsetFactor:-2,depthWrite:false}));
+    pl.position.set(0,HGT/2,sd*(SZ+0.002));pl.rotation.y=sd>0?0:PI;pl.renderOrder=2;G.add(pl);
+    /* real mirror, side step, mudflap, side marker */
+    const mh=surf(new V3(1.15,1.28,sd*2),new V3(0,0,-sd));if(mh){const arm=add(new THREE.BoxGeometry(0.16,0.06,0.16),M.black);arm.position.copy(mh.p).add(new V3(-0.05,0.02,sd*0.07));
+      const hs=add(new THREE.BoxGeometry(0.12,0.3,0.2),M.black);hs.position.copy(mh.p).add(new V3(-0.08,0.12,sd*0.2));const cap=add(new THREE.BoxGeometry(0.1,0.28,0.18),M.paint);cap.position.copy(hs.position).add(new V3(0.03,0,0));}
+    const st=add(new THREE.BoxGeometry(1.1,0.05,0.2),M.grey);st.position.set(-0.62,0.32,sd*(SZ-0.03));
+    [FX-0.48,RX+0.48].forEach(x=>{const f=add(new THREE.BoxGeometry(0.02,0.28,0.24),M.plastic);f.position.set(x,0.25,sd*(SZ-0.15));});
+    const sm=add(new THREE.BoxGeometry(0.1,0.035,0.01),M.amber,false);sm.position.set(1.9,0.78,sd*(SZ+0.04));});
+  /* front: chrome hexagonal grille with five bars, swept headlights, fog lamps, red corner band, plate */
+  {const h=surf(new V3(4,0.64,0),new V3(-1,0,0));if(h){const gs=new THREE.Shape();gs.moveTo(-0.4,-0.17);gs.lineTo(0.4,-0.17);gs.lineTo(0.47,0.0);gs.lineTo(0.42,0.15);gs.lineTo(-0.42,0.15);gs.lineTo(-0.47,0.0);gs.closePath();
+    const gr=stick(new THREE.Mesh(new THREE.ShapeGeometry(gs),new THREE.MeshStandardMaterial({color:'#2c3036',roughness:0.6})),h,0.008);
+    gr.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(gs.getPoints(6).map(p=>new V3(p.x,p.y,0.01)),true),60,0.018,8,true),M.chrome));
+    for(let i=0;i<5;i++){const y=-0.12+i*0.06,hw=0.42-Math.abs(y)*0.35;const b=new THREE.Mesh(new THREE.BoxGeometry(hw*2,0.026,0.03),M.chrome);b.position.set(0,y,0.014);gr.add(b);}
+    const em=new THREE.Mesh(new THREE.CircleGeometry(0.055,24),new THREE.MeshStandardMaterial({color:'#1f4aa8',roughness:0.3,metalness:0.4}));em.scale.x=1.7;em.position.set(0,0.03,0.032);gr.add(em);}}
+  [-1,1].forEach(sd=>{
+    /* swept headlamp: grey housing + clear lens on the front corner, continuing back along the side */
+    const hh=surf(new V3(4,0.9,sd*0.66),new V3(-1,0,0));if(hh){const s2=new THREE.Shape();s2.moveTo(-0.2,-0.055);s2.lineTo(0.14,-0.075);s2.quadraticCurveTo(0.26,-0.06,0.28,0.02);s2.lineTo(0.22,0.07);s2.lineTo(-0.22,0.05);s2.closePath();
+      const hl=stick(new THREE.Mesh(new THREE.ShapeGeometry(s2),M.grey),hh,0.012);if(sd>0)hl.scale.x=-1;
+      const ln=new THREE.Mesh(new THREE.ShapeGeometry(s2),M.lens);ln.position.z=0.012;hl.add(ln);
+      const rf=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.07,0.01),M.chrome);rf.position.set(-0.02,-0.01,0.004);hl.add(rf);
+      [[-0.07,0.032],[0.06,0.026]].forEach(([x,r])=>{const pr=new THREE.Mesh(new THREE.CylinderGeometry(r,r,0.016,18),M.led);pr.rotation.x=PI/2;pr.position.set(x,-0.01,0.008);hl.add(pr);});
+      const drl=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.01,0.008),M.led);drl.position.set(0.02,0.045,0.008);drl.rotation.z=-0.08;hl.add(drl);}
+    const hs=surf(new V3(2.45,0.93,sd*2),new V3(0,0,-sd));if(hs){const s3=new THREE.Shape();s3.moveTo(-0.22,0.0);s3.lineTo(0.2,-0.04);s3.lineTo(0.22,0.05);s3.lineTo(-0.2,0.06);s3.closePath();
+      const sl=stick(new THREE.Mesh(new THREE.ShapeGeometry(s3),M.grey),hs,0.01);const sl2=new THREE.Mesh(new THREE.ShapeGeometry(s3),M.lens);sl2.position.z=0.006;sl.add(sl2);const ab=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.02,0.006),M.amber);ab.position.set(-0.1,0.02,0.006);sl.add(ab);}
+    const fh=surf(new V3(4,0.46,sd*0.62),new V3(-1,0,0));if(fh){const fb=stick(new THREE.Mesh(new THREE.BoxGeometry(0.3,0.1,0.03),M.plastic),fh,0.01);const fl=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.05,0.02),M.chrome);fl.position.z=0.012;fb.add(fl);const fd=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.035,0.022),M.led);fd.position.set(-0.03,0,0.018);fb.add(fd);}
+    const rb=surf(new V3(4,0.78,sd*0.9),new V3(-1,0,-sd*0.6));if(rb){const r=stick(new THREE.Mesh(new THREE.PlaneGeometry(0.28,0.13),new THREE.MeshStandardMaterial({color:'#e0262c',roughness:0.4})),rb,0.006);}
+    /* rear: tall tail lamps in the corners */
+    const th=surf(new V3(-4,1.1,sd*0.9),new V3(1,0,0));if(th){const tl=stick(new THREE.Mesh(new THREE.BoxGeometry(0.1,0.42,0.03),M.tail),th,0.008);const tw=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.08,0.032),M.led);tw.position.y=-0.15;tl.add(tw);const ta=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.07,0.032),M.amber);ta.position.y=-0.06;tl.add(ta);}});
+  {const h=surf(new V3(4,0.4,0),new V3(-1,0,0));if(h)stick(new THREE.Mesh(new THREE.PlaneGeometry(0.46,0.14),M.plate),h,0.012);}
+  {const h=surf(new V3(4,0.3,0),new V3(-1,0,0));if(h){const b=stick(new THREE.Mesh(new THREE.BoxGeometry(1.7,0.16,0.06),M.plastic),h,0.0);}}
+  /* rear doors: split line, glass, plate, bumper, 救護車 lettering */
+  {const h=surf(new V3(-4,1.3,0),new V3(1,0,0));if(h){const rw=stick(new THREE.Mesh(new THREE.PlaneGeometry(1.5,0.5),new THREE.MeshStandardMaterial({map:canvasTex(512,170,(g,w,hh)=>{g.fillStyle='#1a222b';g.fillRect(0,0,w,hh);g.fillStyle='#e9eaec';g.fillRect(w/2-4,0,8,hh);g.fillStyle='#2f3fd8';g.font='900 90px Arial';g.textAlign='center';g.textBaseline='middle';g.fillText('119',w*0.25,hh/2);g.fillStyle='#e0262c';g.font='900 72px sans-serif';g.fillText('救護車',w*0.75,hh/2);},[1,1],true),roughness:0.15})),h,0.006);rw.position.y+=0.38;}}
+  {const h=surf(new V3(-4,0.8,0),new V3(1,0,0));if(h){const st=stick(new THREE.Mesh(new THREE.PlaneGeometry(1.95,0.12),new THREE.MeshStandardMaterial({color:'#e0262c'})),h,0.006);const sp=new THREE.Mesh(new THREE.PlaneGeometry(0.012,1.1),M.plastic);sp.position.set(0,0.2,0.001);st.add(sp);}}
+  {const h=surf(new V3(-4,0.3,0),new V3(1,0,0));if(h){stick(new THREE.Mesh(new THREE.BoxGeometry(1.85,0.16,0.08),M.plastic),h,0.0);}}
+  /* wheels: tyre, sidewall, silver 10-spoke steel cover, hub cap */
+  [FX,RX].forEach(wx=>[1,-1].forEach(sd=>{const Wg=new THREE.Group();Wg.position.set(wx,0.34,sd*0.82);G.add(Wg);
+    const ty=new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.34,0.22,32),M.tire);ty.rotation.x=PI/2;ty.castShadow=true;Wg.add(ty);
+    const sw=new THREE.Mesh(new THREE.TorusGeometry(0.3,0.04,8,32),M.tire);sw.position.z=sd*0.1;Wg.add(sw);
+    const f=new THREE.Group();f.position.z=sd*0.112;Wg.add(f);
+    const disc=new THREE.Mesh(new THREE.CylinderGeometry(0.24,0.24,0.02,32),M.rim);disc.rotation.x=PI/2;f.add(disc);
+    for(let k=0;k<10;k++){const a=k/10*PI*2;const hole=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.035,0.022),M.grey);hole.position.set(Math.cos(a)*0.15,Math.sin(a)*0.15,sd*0.004);hole.rotation.z=a;f.add(hole);}
+    const lip=new THREE.Mesh(new THREE.TorusGeometry(0.235,0.012,6,32),M.rim);f.add(lip);const hb=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.03,18),M.chrome);hb.rotation.x=PI/2;hb.position.z=sd*0.012;f.add(hb);
+    const cc=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.032,16),new THREE.MeshStandardMaterial({color:'#1f4aa8',roughness:0.4}));cc.rotation.x=PI/2;cc.position.z=sd*0.014;f.add(cc);}));
+  /* roof light bar: aluminium base, 4+4 red lens segments, centre siren speaker, mounting feet */
+  const red=new THREE.MeshBasicMaterial({color:'#3a0408',toneMapped:false}),red2=new THREE.MeshBasicMaterial({color:'#3a0408',toneMapped:false});
+  {const bar=new THREE.Group();bar.position.set(0.55,2.06,0);G.add(bar);const bb=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.06,1.42),M.barBase);bar.add(bb);
+   for(let i=0;i<8;i++){if(i===3||i===4)continue;const zc=-0.62+i*0.177;const ln=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.13,0.16),i<4?red:red2);ln.position.set(0,0.095,zc);bar.add(ln);
+     const fr=new THREE.Mesh(new THREE.BoxGeometry(0.31,0.012,0.17),M.barBase);fr.position.set(0,0.165,zc);bar.add(fr);}
+   const spk=new THREE.Mesh(new THREE.BoxGeometry(0.28,0.12,0.32),M.grey);spk.position.set(0,0.09,0);bar.add(spk);const sg=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.08,0.26),M.black);sg.position.set(0.145,0.09,0);bar.add(sg);
+   const top=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.02,1.42),M.barBase);top.position.y=0.17;bar.add(top);
+   [-0.55,0.55].forEach(z=>{const ft=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.08,0.06),M.grey);ft.position.set(0,-0.06,z);bar.add(ft);});
+   bar.traverse(o=>{if(o.isMesh)o.castShadow=true;});}
+  /* small rear roof beacons */
+  [-0.75,0.75].forEach((z,i)=>{const b=add(new THREE.BoxGeometry(0.1,0.08,0.14),i?red2:red,false);b.position.set(-2.5,2.01,z);});
+  const sh=new THREE.Mesh(new THREE.PlaneGeometry(6.0,2.6),M.shadow);sh.rotation.x=-PI/2;sh.position.y=0.012;G.add(sh);
+  G.userData.red=red;G.userData.red2=red2;return G;}
+
 /* ---- 救護車到校（子畫面用的獨立小場景） ---- */
 let AMBU=null;
 function ambScene(){if(AMBU)return AMBU;
   const sc=new THREE.Scene();sc.background=new THREE.Color('#a9d4f5');
   sc.add(new THREE.HemisphereLight(0xffffff,0x8a8f80,1.5));const d=new THREE.DirectionalLight(0xffffff,2.0);d.position.set(-6,12,8);sc.add(d);
   const B=Batch(),mats=ENV_MATS();
-  const red=new THREE.MeshBasicMaterial({color:'#3a0408'}),red2=new THREE.MeshBasicMaterial({color:'#3a0408'});
-  Object.assign(mats,{amb:toon('#f7f8f8'),ambR:toon('#d42a2a'),ambO:toon('#f39a1e'),asphA:toon('#666b70'),side:toon('#c7c2b7'),gate:toon('#b6542f'),wallS:toon('#efe7d6'),tyre:toon('#1c1d20')});
+    Object.assign(mats,{amb:toon('#f7f8f8'),ambR:toon('#d42a2a'),ambO:toon('#f39a1e'),asphA:toon('#666b70'),side:toon('#c7c2b7'),gate:toon('#b6542f'),wallS:toon('#efe7d6'),tyre:toon('#1c1d20')});
   B.put('asphA',uvBox(60,0.04,7),M4(0,0,1.5));for(let x=-28;x<28;x+=3)B.put('white',uvBox(1.6,0.01,0.12),M4(x,0.03,1.5));
   B.put('side',uvBox(60,0.15,2.4),M4(0,0.07,-3.2));B.put('wallS',uvBox(60,1.8,0.3),M4(0,0.9,-5.0));
   B.put('gate',uvBox(0.9,2.6,0.9),M4(-3.4,1.3,-5.0));B.put('gate',uvBox(0.9,2.6,0.9),M4(3.4,1.3,-5.0));
@@ -2376,19 +2498,8 @@ function ambScene(){if(AMBU)return AMBU;
   const gap=new THREE.Mesh(new THREE.BoxGeometry(5.9,1.85,0.4),toon('#a9d4f5'));gap.position.set(0,0.92,-5.0);sc.add(gap);
   const sign=new THREE.Mesh(new THREE.PlaneGeometry(2.6,0.6),toon('#fff',{map:textTex('龍山國小',{w:320,h:80,bg:'#f6efe0',fg:'#7a2a12',size:56})}));sign.position.set(-3.4,2.1,-4.53);sc.add(sign);
   const B3=Batch();[-11,-7,8,12].forEach(x=>broad(B3,x,-6.5,1.0,true));B3.build(sc,mats,false);
-  /* ambulance (white van, red/orange bands, light bar), front toward +x */
-  const car=new THREE.Group();sc.add(car);const add=(g,m,x,y,z)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);car.add(o);return o;};
-  add(new THREE.BoxGeometry(3.6,2.1,2.0),mats.amb,-0.7,1.55,0);add(new THREE.BoxGeometry(1.7,1.25,1.95),mats.amb,1.95,1.12,0);
-  const ws=add(new THREE.BoxGeometry(0.06,0.6,1.7),toon('#24323e'),2.66,1.55,0);ws.rotation.z=0.35;add(new THREE.BoxGeometry(0.9,0.5,1.97),toon('#24323e'),1.95,1.55,0);
-  add(new THREE.BoxGeometry(5.32,0.22,2.02),mats.ambR,0.15,0.88,0);add(new THREE.BoxGeometry(3.62,0.1,2.02),mats.ambO,-0.7,1.08,0);
-  [1,-1].forEach(s=>{const t=new THREE.Mesh(new THREE.PlaneGeometry(2.4,0.5),toon('#fff',{map:textTex('救護車',{w:300,h:64,bg:'#f7f8f8',fg:'#d42a2a',size:54})}));t.position.set(-0.7,1.75,s*1.011);t.rotation.y=s>0?0:PI;car.add(t);
-    const n=new THREE.Mesh(new THREE.PlaneGeometry(0.8,0.36),toon('#fff',{map:textTex('119',{w:120,h:54,bg:'#f7f8f8',fg:'#d42a2a',size:46})}));n.position.set(1.95,1.15,s*0.986);n.rotation.y=s>0?0:PI;car.add(n);});
-  [[1.75,0.82],[-1.6,0.82]].forEach(([x])=>[1,-1].forEach(s=>{const w=add(new THREE.CylinderGeometry(0.4,0.4,0.28,18),mats.tyre,x,0.4,s*0.9);w.rotation.x=PI/2;const h=add(new THREE.CylinderGeometry(0.22,0.22,0.3,12),toon('#c9ced4'),x,0.4,s*0.9);h.rotation.x=PI/2;}));
-  add(new THREE.BoxGeometry(0.06,0.18,0.4),new THREE.MeshBasicMaterial({color:'#fff7d0'}),2.81,0.95,0.68);add(new THREE.BoxGeometry(0.06,0.18,0.4),new THREE.MeshBasicMaterial({color:'#fff7d0'}),2.81,0.95,-0.68);
-  add(new THREE.BoxGeometry(0.5,0.16,1.6),toon('#2b2d31'),1.9,1.84,0);const L1=add(new THREE.BoxGeometry(0.46,0.16,0.7),red,1.9,1.94,0.4),L2=add(new THREE.BoxGeometry(0.46,0.16,0.7),red2,1.9,1.94,-0.4);
-  const C1=add(new THREE.BoxGeometry(0.14,0.14,0.14),red,-2.45,2.66,0.9),C2=add(new THREE.BoxGeometry(0.14,0.14,0.14),red2,-2.45,2.66,-0.9);
-  const pl=new THREE.PointLight(0xff2020,0,7,1.5);pl.position.set(1.9,2.4,0);car.add(pl);
-  car.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  const car=makeAmbulance();sc.add(car);const red=car.userData.red,red2=car.userData.red2;
+  const pl=new THREE.PointLight(0xff2020,0,7,1.5);pl.position.set(0.55,2.6,0);car.add(pl);
   let t=0;AMBU={sc,car,
     start(){t=0;car.position.set(-16,0,1.6);},
     tick(dt){t+=dt;const k=Math.min(1,t/3.4),e=1-Math.pow(1-k,3);car.position.x=lerp(-16,-1.2,e);
@@ -2680,7 +2791,7 @@ async function bootVRM(){const go=$('#go'),lb=$('#lbar'),bar=lb.querySelector('i
   }catch(e){console.warn('載入失敗，改用內建角色',e);GAME.vrmOK=!!(VCH.me_b&&VCH.me_g);}
   bar.style.width='100%';lab.textContent='準備完成！';await new Promise(r=>setTimeout(r,250));
   lb.classList.add('hide');go.classList.remove('hide');go.disabled=false;GAME.vrm=!!VRM_ME;try{['b','g'].forEach(g=>{const t=thumbFor('me_'+g);const e=$('#ph_'+g);if(t&&e){e.textContent='';e.style.backgroundImage='url('+t+')';e.style.backgroundSize='cover';}});}catch(e){console.warn('chip thumb',e);}GAME.ready=true;}
-GAME.dbg=()=>({reward,gameOver,overlay,CASES,caseCard,srcOf,HELP,cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
+GAME.dbg=()=>({ambScene,reward,gameOver,overlay,CASES,caseCard,srcOf,HELP,cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
 GAME.start=()=>$('#go').click();
 window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
 bootVRM();
