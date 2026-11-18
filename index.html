@@ -900,6 +900,7 @@ const SFX={
   zap(){tone(900,0.25,{type:'square',vol:0.06,slide:120});noise(0.3,{vol:0.15,f:1800,sweep:300,type:'bandpass',q:2});},
   fly(){tone(1200,0.9,{type:'sine',vol:0.07,slide:200});},
   dent(){tone(1040,0.5,{type:'square',vol:0.07,slide:620});tone(690,0.7,{type:'triangle',vol:0.12,slide:420});tone(95,0.35,{vol:0.5,slide:45});noise(0.12,{vol:0.55,f:5200,type:'highpass'});noise(0.45,{vol:0.3,f:1800,type:'bandpass',q:2});},
+  siren(sec=6){for(let i=0;i<sec*2;i++){tone(i%2?640:960,0.48,{type:'triangle',vol:0.07,at:i*0.5});tone(i%2?1280:1920,0.48,{type:'sine',vol:0.02,at:i*0.5});}},
   crack(){noise(0.08,{vol:0.35,f:3500,type:'highpass'});tone(300,0.06,{type:'square',vol:0.08,slide:80});},
   door(){noise(0.5,{vol:0.07,f:900,sweep:500,type:'bandpass',q:2});},
   laugh(){for(let i=0;i<9;i++){const f=260-i*14;tone(f,0.13,{type:'sawtooth',vol:0.09,slide:f*0.7,at:i*0.15});tone(f*0.5,0.13,{type:'square',vol:0.05,slide:f*0.35,at:i*0.15});}},
@@ -1161,6 +1162,9 @@ function makeVRMChar(vrm,height=1.42,opts={}){
     else if(P==='breathe'){const b=Math.sin(t*1.6);arm(T,1,1.2-0.05*b,-0.7,1.75);arm(T,-1,1.2-0.05*b,-0.7,1.75);T.chest=[-0.07*b-0.03,0,0];T.neck=[-0.04*b,0,0];T.head=[-0.06*b,0,0];}
     else if(P==='tie'){const w=Math.sin(t*8)*0.05;leg(T,1,-1.25,2.2,-0.4,0.12);leg(T,-1,-0.05,1.95,0.8,0.08);arm(T,1,1.5,-0.95+w,0.35);arm(T,-1,1.45,-1.05-w,0.3);T.spine=[0.7,0.15,0];T.chest=[0.35,0.1,0];T.neck=[0.1,0,0];T.head=[0.3,0.1,0];drop=0.4;}
     else if(P==='lean'){leg(T,1,-0.35,0.65,-0.3,0.05);leg(T,-1,-0.3,0.6,-0.3,0.05);arm(T,1,1.45,-0.35,0.45);arm(T,-1,1.45,-0.35,0.45);T.spine=[0.85,0,0];T.chest=[0.25,0,0];T.neck=[-0.15,0,0];T.head=[-0.2,0,0];drop=0.06;}
+    else if(P==='brace'){arm(T,1,1.3,-1.55,0.1);arm(T,-1,1.3,-1.55,0.1);leg(T,1,0.15,0.1);leg(T,-1,-0.1,0.15);T.neck=[-0.3,0,0];T.head=[-0.35,0,0];}
+    else if(P==='hurtArm'){leg(T,1,-1.5,0.08,-0.3,0.12);leg(T,-1,-1.5,0.3,-0.3,0.12);arm(T,1,1.35,-0.55,1.15);arm(T,-1,1.4,-0.9,1.75,-0.2);T.spine=[0.28,0,0];T.chest=[0.08,0,0];T.head=[0.35,0.15,0];drop=0.44;}
+    else if(P==='bed'){arm(T,-1,1.32,0.05,0.15);arm(T,1,1.3,0.0,0.35);leg(T,1,0.02,0.05);leg(T,-1,0.02,0.05);T.head=[-0.1,0,0];}
     else if(P==='climb'){const a=c.climbK!=null?Math.cos(c.climbK*PI):Math.sin(t*3.2),u=Math.max(0,a),v=Math.max(0,-a);arm(T,1,1.45,-2.35-0.45*u,0.35+0.5*v);arm(T,-1,1.45,-2.35-0.45*v,0.35+0.5*u);leg(T,1,-0.25-0.8*v,0.3+1.1*v,0.3);leg(T,-1,-0.25-0.8*u,0.3+1.1*u,0.3);T.spine=[0.1,0,0];T.neck=[-0.25,0,0];T.head=[-0.3,0,0];}
     else if(P==='jump'){leg(T,1,-1.05,1.45,0.35);leg(T,-1,-0.8,1.2,0.35);arm(T,1,1.45,-2.2,0.35);arm(T,-1,1.45,-2.2,0.35);T.spine=[0.2,0,0];}
     else if(P==='point'){arm(T,-1,1.55,-1.45,0.05);}
@@ -1566,7 +1570,7 @@ let VRM_ME=null;
 const PLACES=[
   {id:'court',name:'籃球場與輔導室走廊',icon:'🏀',x:-9.5,z:-9},
   {id:'wall',name:'圍牆邊草地',icon:'🧱',x:-14,z:28},
-  {id:'play',name:'遊戲區攀爬架',icon:'🧗',x:15.5,z:20.5},
+  {id:'stage',name:'司令台',icon:'🏫',x:0,z:-24},
 ];
 PLACES.forEach(p=>{p.m=makeMarker(p.icon+' '+p.name);p.m.position.set(p.x,0,p.z);campus.add(p.m);});
 const arrow=new THREE.Group();{const sh=new THREE.Shape();sh.moveTo(0,0.42);sh.lineTo(0.34,0.02);sh.lineTo(0.13,0.02);sh.lineTo(0.13,-0.36);sh.lineTo(-0.13,-0.36);sh.lineTo(-0.13,0.02);sh.lineTo(-0.34,0.02);sh.closePath();
@@ -1814,7 +1818,7 @@ async function runCase(id){
   GAME.state='tragedy:'+id;
   cmApproach('base');await C.tragedy(S,'base');cmHide();slowmo(1,0);
   musicPlay('tragedy');
-  await sayAll(C.after,S);
+  await sayAll(C.after,S);cmHide();
   SFX.clang();await overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(C)}<div class="src">${srcOf(C)}</div><div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict');
   S.phase='regret';
   await sayAll(C.regret,S);
@@ -1832,7 +1836,7 @@ async function runCase(id){
     GAME.state='happy:'+id;fxHearts(true);SFX.warm();S.actors.forEach(c=>{if(c.root.visible&&c!==S.me&&c.pose==='idle')c.setMood('joy');});
     await sayAll(C.safeLines.slice(-1),S);storyOn(false);await reward(C);}
   else{REC=null;S.phase='tempt';FX.angelOut();musicPlay('devil');for(let i=C.keyIdx;i<C.steps.length;i++){if(C.steps[i].act){cmRun();await C.steps[i].act(S,o.v);cmHide();}}
-    cmApproach(o.v);await C.tragedy(S,o.v);cmHide();slowmo(1,0);musicPlay('tragedy');await sayAll([['nar',o.after]].concat(C.after.slice(0,2)),S);await jailScene(C);storyOn(false);await gameOver(C,o);}
+    cmApproach(o.v);await C.tragedy(S,o.v);cmHide();slowmo(1,0);musicPlay('tragedy');await sayAll([['nar',o.after]].concat(o.lines||C.afterShort||C.after.slice(0,2)),S);cmHide();if(o.self&&C.hospital)await C.hospital(S,o);else await jailScene(C);storyOn(false);await gameOver(C,o);}
 }
 async function jailScene(C){GAME.state='jail:'+C.id;musicPlay('devil');document.body.classList.add('jail');S.phase='jail';
   devil.laugh=1;FX.devilIn();SFX.laugh();stinger('devil');
@@ -1851,8 +1855,8 @@ async function reward(C){GAME.state='reward:'+C.id;save.done[C.id]=true;persist(
 async function gameOver(C,o){GAME.state='over:'+C.id;stinger('lose');musicPlay('over');if(hand)hand.visible=false;
   rig.shake=0.4;SFX.clang();
   const a=await overlay(`<div class="rs-title">GAME OVER</div><div class="rs-sub">悲劇重演了……</div>
-    <div class="rs-main"><div class="rs-badge"><div class="fine"><small>真實判決</small>${C.award}</div><div class="rs-get">真實判決案例<b>${C.title}</b></div></div>
-    <div class="rs-info panel"><div class="why">❌ 你選了：「${o.t}」<br>${o.why}</div><div class="ds">${C.desc}</div><div class="tip">🤔 想一想：${C.hint}</div>
+    <div class="rs-main"><div class="rs-badge"><div class="fine"><small>${o.self?'後果':'真實判決'}</small>${o.award||C.award}</div><div class="rs-get">${o.self?'自己也會受傷':'真實判決案例'}<b>${C.title}</b></div></div>
+    <div class="rs-info panel"><div class="why">❌ 你選了：「${o.t}」<br>${o.why}</div><div class="ds">${o.desc||C.desc}</div><div class="tip">🤔 想一想：${C.hint}</div>
     <div class="btns"><button class="btn gray" data-a="map">回到校園</button><button class="btn big" data-a="retry">再挑戰一次 ↻</button></div></div></div>`,'full lose over');
   if(a==='retry'){cleanupCase();await runCase(C.id);}else await backToMap();}
 function cleanupCase(){cmHide();slowmo(1,0);TS.k=1;fxHearts(false);jailOff();if(S&&S.cleanup)S.cleanup();ambience(null);FX.hideAll();hush();REC=null;tw.length=0;document.body.classList.remove('rewinding');$('#rw').classList.add('hide');}
@@ -1863,7 +1867,7 @@ async function backToMap(){await fade(1);cleanupCase();S=null;curScene=campus;mo
   if(Object.keys(CASES).every(k=>save.done[k])&&!save.cert){save.cert=true;persist();SFX.win();
     fxConfetti(160);await overlay(`<div class="rs-title">校園安全守護者</div><div class="rs-sub">龍山國小　Episode 2　完成</div>
       <div class="rs-main"><div class="rs-badge"><div class="badgeBig"><i class="sch" style="width:80%;height:80%"></i></div><div class="stars"><i>★</i><i>★</i><i>★</i></div><div class="rs-get">集滿<b>3 枚安全徽章</b></div></div>
-      <div class="rs-info panel"><div class="tip">生氣要先冷靜，石頭不能丟，從高處要先確認下面。<br>玩耍，也要顧安全！</div><p style="font-size:16px;color:#7a7090">法律是最後一道防線，我們希望永遠用不到它。</p><div class="btns"><button class="btn green big" data-a="ok">太棒了！</button></div></div></div>`,'full win');}}
+      <div class="rs-info panel"><div class="tip">生氣要先冷靜，石頭不能丟，司令台不往下跳。<br>玩耍，也要顧安全！</div><p style="font-size:16px;color:#7a7090">法律是最後一道防線，我們希望永遠用不到它。</p><div class="btns"><button class="btn green big" data-a="ok">太棒了！</button></div></div></div>`,'full win');}}
 
 
 /* ================= DIRECTOR: comic panels with live 3D action shots + slow motion ================= */
@@ -1881,7 +1885,7 @@ const SLOT={A:[[.02,.095,.42,.5],[.03,.08,.94,.25]],B:[[.70,.095,.28,.3],[.03,.3
 function cmShow(name,defs,o={}){cmHide();const R=cmRoot();CM.stage=o.stage||null;CM.life=o.life||0;
   defs.forEach((d,i)=>{const el=document.createElement('div');el.className='cmp '+(d.fx||'')+' slot'+d.slot;
     el.innerHTML=`<div class="cmfx"></div><div class="cmtone"></div>${d.tag?`<div class="cmtag">${d.tag}</div>`:''}${d.em?`<div class="cmem">${d.em}</div>`:''}${d.sfx?`<div class="cmsfx">${d.sfx}</div>`:''}`;R.appendChild(el);
-    CM.ps.push({el,slot:d.slot,k:0,delay:i*0.13,ov:d.ov||null,shot:d.shot});});
+    CM.ps.push({el,slot:d.slot,k:0,delay:i*0.13,ov:d.ov||null,shot:d.shot,scene:d.scene||null,tick:d.tick||null});});
   if(o.burst){const b=document.createElement('div');b.className='cmburst '+(o.burst.cls||'');const pts=[],n=13;
     for(let i=0;i<n*2;i++){const a=i/(n*2)*6.283,r=i%2?60+Math.random()*10:98-Math.random()*10;pts.push((100+Math.cos(a)*r).toFixed(1)+','+(80+Math.sin(a)*r*0.78).toFixed(1));}
     b.innerHTML=`<svg viewBox="0 0 200 160"><polygon class="sh" points="${pts.join(' ')}" transform="translate(5,6)"/><polygon points="${pts.join(' ')}"/></svg><span>${o.burst.icon?`<i>${o.burst.icon}</i>`:''}${o.burst.t}</span>`;R.appendChild(b);CM.burst=b;
@@ -1930,7 +1934,7 @@ function cmRender(dt){if(!CM.ps.length)return;
       const s=c.root.scale.x,up=_c1.set(0,1,0).applyQuaternion(c.root.quaternion),fw=_c2.set(0,0,1).applyQuaternion(c.root.quaternion),hy=c.headY*s,D=(c===devil?2.9:2.5)*s;
       cam.up.copy(up);cam.position.copy(c.root.position).addScaledVector(up,hy*(c===devil?1.05:1.0)).addScaledVector(fw,D);cam.lookAt(_c3.copy(c.root.position).addScaledVector(up,hy*(c===devil?0.95:0.97)));
       renderer.render(ov,cam);ov.children.forEach((o,i)=>o.visible=vis[i]);}
-    else{renderer.setClearColor(0xa9cbec,1);renderer.clear();try{p.shot();}catch(e){GAME.cmErr=String(e);continue;}cam.updateProjectionMatrix();renderer.render(curScene,cam);}}
+    else{renderer.setClearColor(0xa9cbec,1);renderer.clear();if(p.tick)p.tick(dt);try{p.shot();}catch(e){GAME.cmErr=String(e);continue;}cam.updateProjectionMatrix();renderer.render(p.scene||curScene,cam);}}
   if(rest){me.root.visible=false;me.root.position.copy(rest[0]);me.root.rotation.copy(rest[1]);me.root.updateMatrixWorld(true);}
   renderer.setScissorTest(false);renderer.setViewport(0,0,W,H);renderer.setClearColor(0x000000,1);renderer.shadowMap.autoUpdate=au;}
 
@@ -1951,19 +1955,23 @@ const DIR={
     impact:S=>{const P=S.dmg[1].userData.hit;return{ps:[{slot:'A',shot:()=>aim(_c3.set(P.x-0.55,P.y+0.42,P.z+0.55),_c1.set(P.x,P.y,P.z),34),fx:'impact',tag:'引擎蓋凹了一塊'},{slot:'B',shot:()=>aim(_c3.set(P.x+3.2,P.y+0.3,P.z-2.4),_c1.set(P.x,P.y-0.4,P.z),40),fx:'impact',tag:'刮痕和凹痕'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]};},
     safe:S=>({pose:'squat',ps:[{slot:'A',shot:()=>aim(_c3.set(3.4,1.35,-3.4),_c1.set(1.1,0.9,-6.3),46),fx:'glow',tag:'放下石頭'},{slot:'B',shot:SH.part(S.me,'rightHand',{f:0.6,r:0.3,y:0.1,fov:34}),fx:'glow',tag:'不丟'}]}),
   },
-  play:{
-    insert:[S=>({shot:()=>aim(_c3.set(-3.2,0.9,-4.2),_c1.set(0,0.6,-6.4),46),tag:'一公尺高的平台'}),S=>({shot:SH.body(S.mei,{f:1.7,r:1.0,y:0.95,ly:0.35,fov:38}),tag:'下面有人在綁鞋帶'})],
-    run:S=>[{slot:'A',shot:()=>aim(_c3.set(2.6,1.3,-3.6),_c1.set(0,1.2,-6.0),46),fx:'speed',tag:'爬上網梯',sfx:'沙沙'},{slot:'B',shot:SH.body(S.me,{f:-1.3,r:0.8,y:1.6,ly:1.1,fov:46}),fx:'speed',tag:'抓緊繩網'}],
-    approach:(S,v)=>({pose:'jumpReady',stage:null,ps:[{slot:'A',shot:()=>aim(_c3.set(4.2,1.4,-9.4),_c1.set(1.4,1.6,-8),46),fx:'speed',tag:'從高處往下跳',sfx:'咻——'},{slot:'B',shot:SH.body(S.mei,{f:2.0,r:0.8,y:1.1,ly:0.95,fov:34}),tag:'下面的同學'}],burst:{t:'跳！',icon:'🦘'}}),
-    impact:S=>({ps:[{slot:'A',shot:()=>aim(_c3.set(4.2,1.3,-6.2),_c1.set(1.8,1.0,-7.8),44),fx:'impact',tag:'壓到同學'},{slot:'B',shot:SH.fixed([3.7,1.0,-9.8],S.mei,null,{ly:0.45,fov:40}),fx:'impact',tag:'小美'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]}),
-    safe:S=>({pose:'idle',ps:[{slot:'A',shot:()=>aim(_c3.set(4.4,2.2,-9.0),_c1.set(1.0,1.7,-8),46),fx:'glow',tag:'先看清楚'},{slot:'B',shot:SH.part(S.me,'head',{f:0.9,r:0.1,y:0.1,fov:36}),fx:'glow',tag:'問：下面有人嗎？'}]}),
+  stage:{
+    insert:[S=>({shot:()=>aim(_c3.set(3.2,1.2,-3.6),_c1.set(0,0.6,-7.4),46),tag:'一公尺高的司令台'}),S=>({shot:SH.body(S.mei,{f:1.6,r:-1.0,y:0.95,ly:0.35,fov:38}),tag:'下面有人在綁鞋帶'})],
+    run:S=>[{slot:'A',shot:()=>aim(_c3.set(8.6,1.5,-4.4),_c1.set(5.8,0.9,-6.6),44),fx:'speed',tag:'跑上司令台',sfx:'噠噠'},{slot:'B',shot:SH.body(S.me,{f:1.6,r:1.2,y:0.4,ly:0.3,fov:44}),fx:'speed',tag:'一步跨上樓梯'}],
+    approach:(S,v)=>v==='run'?({pose:'run',stage:null,ps:[{slot:'A',shot:()=>aim(_c3.set(3.6,1.6,-8.6),_c1.set(0,1.4,-8.8),46),fx:'speed',tag:'往後退，再助跑',sfx:'噠噠噠'},{slot:'B',shot:()=>aim(_c3.set(0.9,1.25,-6.9),_c1.set(0,1.02,-7.55),36),tag:'台邊的防滑條'}],burst:{t:'衝！',icon:'🏃'}})
+      :({pose:'jumpReady',stage:null,ps:[{slot:'A',shot:()=>aim(_c3.set(3.4,1.4,-5.2),_c1.set(0,1.6,-7.6),46),fx:'speed',tag:'從司令台往下跳',sfx:'咻——'},{slot:'B',shot:SH.body(S.mei,{f:2.0,r:-0.8,y:1.1,ly:0.6,fov:34}),tag:'下面的同學'}],burst:{t:'跳！',icon:'🦘'}}),
+    impact:S=>S.v==='run'?({ps:[{slot:'A',shot:()=>{const h=bonePos(S.me,'rightHand',_c1);aim(_c3.set(h.x+0.75,h.y+0.35,h.z+0.55),h,36);},fx:'impact',tag:'右手先撐地'},{slot:'B',shot:()=>{const h=bonePos(S.me,'head',_c1);aim(_c3.set(h.x-0.7,h.y+0.3,h.z+0.6),h,36);},fx:'impact',tag:'頭撞到地面'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]})
+      :({ps:[{slot:'A',shot:()=>aim(_c3.set(2.8,1.2,-4.6),_c1.set(0,1.0,-6.8),44),fx:'impact',tag:'壓到同學'},{slot:'B',shot:SH.fixed([-1.0,0.9,-4.6],S.mei,null,{ly:0.45,fov:40}),fx:'impact',tag:'小美'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]}),
+    safe:S=>({pose:'idle',ps:[{slot:'A',shot:()=>aim(_c3.set(8.8,1.6,-4.4),_c1.set(5.8,1.2,-7.2),44),fx:'glow',tag:'走旁邊的樓梯'},{slot:'B',shot:()=>aim(_c3.set(7.4,0.9,-5.4),_c1.set(5.8,0.5,-6.9),38),fx:'glow',tag:'一階一階走下去'}]}),
   },
+
 };
 function cmWhisper(i){const D=DIR[S.C.id],ins=D.insert[i]&&D.insert[i](S);S.me.setMood('surprised');
   cmShow('cm-whisper',[{slot:'D',ov:'devil',fx:'whisper',tag:'小惡魔的耳語',sfx:'嘶嘶……'}].concat(ins?[{slot:'E',shot:ins.shot,fx:'dark',tag:ins.tag}]:[]).concat([{slot:'F',shot:SH.face(S.me,-0.24),fx:'dark',em:'！？'}]));}
 function cmRun(){const D=DIR[S.C.id];mePose('run');S.me.setMood('');cmShow('cm-run',D.run(S),{burst:{t:'衝！',icon:'🏃',cls:'sm',life:1.3}});}
 function cmApproach(v){const a=DIR[S.C.id].approach(S,v);mePose(a.pose);S.me.setMood('');cmShow('cm-danger',a.ps,{stage:a.stage,burst:Object.assign({cls:'sm'},a.burst)});slowmo(0.3,7);}
 function cmImpact(){const st=(CM.stage||stageRig)();S.me.setMood('surprised');const a=DIR[S.C.id].impact(S);cmShow('cm-impact',a.ps,{stage:()=>st,life:2.1,burst:{t:'砰！！',cls:'red'}});slowmo(0.1,1.7);}
+function cmAmb(){const A=ambScene();A.start();SFX.siren(7);cmShow('cm-amb',[{slot:'B',scene:A.sc,tick:dt=>A.tick(dt),shot:()=>A.wide(),tag:'🚑 救護車趕到學校',sfx:'喔咿——'},{slot:'C',scene:A.sc,shot:()=>A.close(),fx:'speed',tag:'閃燈、鳴笛'}]);}
 function cmSafe(){const a=DIR[S.C.id].safe(S);mePose(a.pose);S.me.setMood('joy');cmShow('cm-reverse',a.ps.concat([{slot:'C',ov:'angel',fx:'glow',tag:'小天使'}]),{stage:a.stage||null,burst:{t:'逆轉！',cls:'gold',life:1.8}});}
 
 
@@ -2201,6 +2209,95 @@ function buildPlay(){
   const B2=Batch();[[-9,-3,1.2],[-10,-12,1.3],[11,-6,1.2],[10,-13,1.1],[9,2,1.0]].forEach(([x,z,s])=>broad(B2,x,z,s,true));B2.build(sc,mats,false);
   sc.userData.deck=1.0;return markEnv(sc);}
 
+/* ---- 3. 司令台（高約 1 m，兩側樓梯，台緣黃色防滑條）+ 病房（遠處） ---- */
+const ST={top:1.0,front:-7.5,back:-12.5,half:7.0,stx:5.8,stw:0.8,tread:0.3};
+function stageFloor(x,z){const ax=Math.abs(x);
+  if(ax<=ST.half&&z<=ST.front&&z>=ST.back)return ST.top;
+  if(ax>=ST.stx-ST.stw&&ax<=ST.stx+ST.stw&&z>ST.front&&z<ST.front+3*ST.tread){const i=Math.floor((z-ST.front)/ST.tread);return ST.top-0.25*(i+1);}
+  return 0;}
+function buildStage(){
+  const sc=new THREE.Scene();addPano(sc,0,PANO_HUB);addLights(sc,{shadowR:30,dir:[-10,60,22],target:[0,0,-9],sun:2.2});
+  const B=Batch(),mats=ENV_MATS();
+  const tileF=canvasTex(256,128,(g,w,h)=>{g.fillStyle='#b9584a';g.fillRect(0,0,w,h);for(let y=0;y<h;y+=16)for(let x=-(y/16%2)*16;x<w;x+=32){g.fillStyle=`hsl(8,${36+((x*7+y*3)%13)}%,${44+((x*5+y)%9)}%)`;g.fillRect(x+1,y+1,30,14);}},[7,1]);
+  const tileT=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#c9c4ba';g.fillRect(0,0,w,h);g.strokeStyle='rgba(90,85,78,.35)';g.lineWidth=2;for(let i=0;i<=w;i+=32){g.beginPath();g.moveTo(i,0);g.lineTo(i,h);g.stroke();g.beginPath();g.moveTo(0,i);g.lineTo(w,i);g.stroke();}
+    for(let i=0;i<1800;i++){g.fillStyle=rnd()<.5?'rgba(0,0,0,.05)':'rgba(255,255,255,.07)';g.fillRect(rnd()*w,rnd()*h,2,2);}},[7,2.5]);
+  Object.assign(mats,{tileF:toon('#ffffff',{map:tileF}),tileT:toon('#ffffff',{map:tileT}),strip:toon('#f2c21b'),wood:toon('#8a5a36'),wall2:toon('#e9e2d4'),col:toon('#d8d2c6'),beam:toon('#2f6a8a'),handr:toon('#b8bec6'),bed:toon('#e8edf2'),blank:toon('#5d8fd0'),hwall:toon('#eef3ef'),hfloor:toon('#cfd8d6'),curt:toon('#9fc7c0')});
+  const asph=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#737b78';g.fillRect(0,0,w,h);for(let i=0;i<3600;i++){g.fillStyle=rnd()<.5?'rgba(255,255,255,.07)':'rgba(0,0,0,.12)';g.fillRect(rnd()*w,rnd()*h,2,2);}},[30,30]);
+  sc.add(gplane(120,120,asph,0,1));
+  [[0,-3.2,26,0.08],[-13,4,0.08,22],[13,4,0.08,22]].forEach(([x,z,w,d])=>{const l=new THREE.Mesh(new THREE.PlaneGeometry(w,d),toon('#f2f2ee',{decal:true}));l.rotation.x=-PI/2;l.position.set(x,0.012,z);sc.add(l);});
+  /* platform: tiled front face, tiled top, yellow anti-slip edge strip (raised 2 cm) */
+  const Hd=(ST.back-ST.front);
+  B.put('tileF',uvBox(ST.half*2,ST.top-0.06,-Hd),M4(0,(ST.top-0.06)/2,(ST.front+ST.back)/2));
+  B.put('tileT',uvBox(ST.half*2,0.06,-Hd),M4(0,ST.top-0.03,(ST.front+ST.back)/2));
+  B.put('strip',uvBox(ST.half*2,0.02,0.07),M4(0,ST.top+0.01,ST.front-0.04));B.put('strip',uvBox(ST.half*2,0.06,0.02),M4(0,ST.top-0.03,ST.front+0.005));
+  /* stairs at both front corners: 3 treads × 25 cm rise, 30 cm run, yellow nosing, rails */
+  [-1,1].forEach(s=>{const x=s*ST.stx;for(let i=0;i<3;i++){const y=ST.top-0.25*(i+1),z0=ST.front+ST.tread*i;
+      B.put('tileT',uvBox(ST.stw*2,y,ST.tread),M4(x,y/2,z0+ST.tread/2));B.put('strip',uvBox(ST.stw*2,0.012,0.05),M4(x,y+0.006,z0+ST.tread-0.03));}
+    [-1,1].forEach(e=>{const rx=x+e*(ST.stw+0.04);B.put('handr',cyl(0.025,0.025,0.95,8),M4(rx,ST.top+0.45,ST.front-0.1));B.put('handr',cyl(0.025,0.025,0.95,8),M4(rx,0.47,ST.front+0.85));
+      const L=Math.hypot(0.95,1.0);B.put('handr',cyl(0.022,0.022,L+0.1,8),M4(rx,0.95+0.45,ST.front+0.4,0,0.81,0));});});
+  /* back wall with a mural, roof on columns, front beam with the motto */
+  B.put('wall2',uvBox(ST.half*2+0.6,4.4,0.3),M4(0,ST.top+2.2,ST.back-0.1));
+  [-ST.half,ST.half].forEach(x=>{B.put('col',uvBox(0.45,4.5,0.45),M4(x,ST.top+2.25,ST.front-0.35));B.put('col',uvBox(0.45,4.5,0.45),M4(x,ST.top+2.25,ST.back+0.1));});
+  B.put('col',uvBox(ST.half*2+1.2,0.4,Hd*-1+1.0),M4(0,ST.top+4.6,(ST.front+ST.back)/2));B.put('beam',uvBox(ST.half*2+1.2,0.7,0.3),M4(0,ST.top+4.05,ST.front-0.35));
+  /* lectern + microphone */
+  B.put('wood',uvBox(1.0,1.05,0.6),M4(0,ST.top+0.53,ST.back+1.4));B.put('wood',uvBox(1.1,0.06,0.7),M4(0,ST.top+1.08,ST.back+1.4,0,-0.15,0));B.put('metal',cyl(0.01,0.01,0.35,6),M4(0,ST.top+1.25,ST.back+1.65,0,0.5,0));
+  /* flagpoles to the right */
+  [9.5,10.6,11.7].forEach((x,i)=>{B.put('metal',cyl(0.05,0.07,i===1?9:8,8),M4(x,(i===1?9:8)/2,-10.5));B.put('metal',cyl(0.6,0.7,0.3,16),M4(x,0.15,-10.5));});
+  /* school building behind */
+  B.put('pink',uvBox(40,12,8,0.6),M4(0,6,-19));for(let f=0;f<3;f++)for(let c=0;c<12;c++)win(B,-17+c*3.1,2+f*3.4,-14.96,0,1.3,1.4);
+  /* hospital room far away (x≈200): walls, window, bed, IV pole, cabinet, curtain */
+  const HX=200,HZ=0;B.put('hfloor',uvBox(7,0.1,7),M4(HX,-0.05,HZ));B.put('hwall',uvBox(7,3,0.15),M4(HX,1.5,HZ-3.5));B.put('hwall',uvBox(0.15,3,7),M4(HX-3.5,1.5,HZ));B.put('hwall',uvBox(0.15,3,7),M4(HX+3.5,1.5,HZ));
+  B.put('glass',uvBox(1.8,1.2,0.05),M4(HX+1.2,1.7,HZ-3.42));B.put('white',uvBox(2.0,0.08,0.1),M4(HX+1.2,1.06,HZ-3.4));
+  B.put('handr',uvBox(1.0,0.06,2.1),M4(HX-0.6,0.42,HZ-1.6));[[-1.05,-0.6],[-0.15,-0.6],[-1.05,-2.6],[-0.15,-2.6]].forEach(([dx,dz])=>B.put('handr',cyl(0.03,0.03,0.42,6),M4(HX+dx,0.21,HZ+dz+0.0)));
+  B.put('bed',uvBox(0.95,0.16,2.0),M4(HX-0.6,0.53,HZ-1.6));B.put('blank',uvBox(0.98,0.05,1.25),M4(HX-0.6,0.63,HZ-1.15));B.put('bed',uvBox(0.6,0.12,0.4),M4(HX-0.6,0.66,HZ-2.4));B.put('handr',uvBox(1.0,0.75,0.05),M4(HX-0.6,0.75,HZ-2.62));
+  B.put('handr',cyl(0.02,0.02,1.9,6),M4(HX+0.25,0.95,HZ-2.4));B.put('bed',uvBox(0.14,0.22,0.05),M4(HX+0.25,1.75,HZ-2.4));B.put('wood',uvBox(0.5,0.65,0.45),M4(HX+0.45,0.33,HZ-1.4));
+  B.put('curt',uvBox(0.04,2.2,2.6),M4(HX-1.6,1.25,HZ-1.6));
+  B.build(sc,mats);
+  const ban=new THREE.Mesh(new THREE.PlaneGeometry(10,0.55),toon('#fff',{decal:true,map:textTex('人文龍山　活力校園　創新未來',{w:1280,h:80,bg:'#2f6a8a',fg:'#ffffff',size:56})}));ban.position.set(0,ST.top+4.05,ST.front-0.19);sc.add(ban);
+  const mur=new THREE.Mesh(new THREE.PlaneGeometry(9,2.6),toon('#fff',{decal:true,map:canvasTex(512,150,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#bfe3ff');gr.addColorStop(1,'#e8f6d8');g.fillStyle=gr;g.fillRect(0,0,w,h);
+    g.fillStyle='#5aa96a';g.beginPath();g.moveTo(0,h);for(let x=0;x<=w;x+=16)g.lineTo(x,h-30-Math.sin(x/40)*14);g.lineTo(w,h);g.fill();g.fillStyle='#1d58a3';g.font='bold 54px sans-serif';g.textAlign='center';g.fillText('龍山國小',w/2,72);},[1,1],true)}));
+  mur.position.set(0,ST.top+2.5,ST.back+0.06);sc.add(mur);
+  const hl=new THREE.PointLight(0xfff6e8,6,9,1.4);hl.position.set(HX,2.6,HZ-0.5);sc.add(hl);
+  const B2=Batch();[[-12,-11,1.3],[-14,-3,1.2],[15,-4,1.2],[14,4,1.1],[-13,6,1.1]].forEach(([x,z,s])=>broad(B2,x,z,s,true));B2.build(sc,mats,false);
+  return markEnv(sc);}
+
+/* ---- 救護車到校（子畫面用的獨立小場景） ---- */
+let AMBU=null;
+function ambScene(){if(AMBU)return AMBU;
+  const sc=new THREE.Scene();sc.background=new THREE.Color('#a9d4f5');
+  sc.add(new THREE.HemisphereLight(0xffffff,0x8a8f80,1.5));const d=new THREE.DirectionalLight(0xffffff,2.0);d.position.set(-6,12,8);sc.add(d);
+  const B=Batch(),mats=ENV_MATS();
+  const red=new THREE.MeshBasicMaterial({color:'#3a0408'}),red2=new THREE.MeshBasicMaterial({color:'#3a0408'});
+  Object.assign(mats,{amb:toon('#f7f8f8'),ambR:toon('#d42a2a'),ambO:toon('#f39a1e'),asphA:toon('#666b70'),side:toon('#c7c2b7'),gate:toon('#b6542f'),wallS:toon('#efe7d6'),tyre:toon('#1c1d20')});
+  B.put('asphA',uvBox(60,0.04,7),M4(0,0,1.5));for(let x=-28;x<28;x+=3)B.put('white',uvBox(1.6,0.01,0.12),M4(x,0.03,1.5));
+  B.put('side',uvBox(60,0.15,2.4),M4(0,0.07,-3.2));B.put('wallS',uvBox(60,1.8,0.3),M4(0,0.9,-5.0));
+  B.put('gate',uvBox(0.9,2.6,0.9),M4(-3.4,1.3,-5.0));B.put('gate',uvBox(0.9,2.6,0.9),M4(3.4,1.3,-5.0));
+  B.build(sc,mats);sc.children.forEach(o=>{if(o.isMesh&&o.position.x===0)return;});
+  const gap=new THREE.Mesh(new THREE.BoxGeometry(5.9,1.85,0.4),toon('#a9d4f5'));gap.position.set(0,0.92,-5.0);sc.add(gap);
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(2.6,0.6),toon('#fff',{map:textTex('龍山國小',{w:320,h:80,bg:'#f6efe0',fg:'#7a2a12',size:56})}));sign.position.set(-3.4,2.1,-4.53);sc.add(sign);
+  const B3=Batch();[-11,-7,8,12].forEach(x=>broad(B3,x,-6.5,1.0,true));B3.build(sc,mats,false);
+  /* ambulance (white van, red/orange bands, light bar), front toward +x */
+  const car=new THREE.Group();sc.add(car);const add=(g,m,x,y,z)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);car.add(o);return o;};
+  add(new THREE.BoxGeometry(3.6,2.1,2.0),mats.amb,-0.7,1.55,0);add(new THREE.BoxGeometry(1.7,1.25,1.95),mats.amb,1.95,1.12,0);
+  const ws=add(new THREE.BoxGeometry(0.06,0.6,1.7),toon('#24323e'),2.66,1.55,0);ws.rotation.z=0.35;add(new THREE.BoxGeometry(0.9,0.5,1.97),toon('#24323e'),1.95,1.55,0);
+  add(new THREE.BoxGeometry(5.32,0.22,2.02),mats.ambR,0.15,0.88,0);add(new THREE.BoxGeometry(3.62,0.1,2.02),mats.ambO,-0.7,1.08,0);
+  [1,-1].forEach(s=>{const t=new THREE.Mesh(new THREE.PlaneGeometry(2.4,0.5),toon('#fff',{map:textTex('救護車',{w:300,h:64,bg:'#f7f8f8',fg:'#d42a2a',size:54})}));t.position.set(-0.7,1.75,s*1.011);t.rotation.y=s>0?0:PI;car.add(t);
+    const n=new THREE.Mesh(new THREE.PlaneGeometry(0.8,0.36),toon('#fff',{map:textTex('119',{w:120,h:54,bg:'#f7f8f8',fg:'#d42a2a',size:46})}));n.position.set(1.95,1.15,s*0.986);n.rotation.y=s>0?0:PI;car.add(n);});
+  [[1.75,0.82],[-1.6,0.82]].forEach(([x])=>[1,-1].forEach(s=>{const w=add(new THREE.CylinderGeometry(0.4,0.4,0.28,18),mats.tyre,x,0.4,s*0.9);w.rotation.x=PI/2;const h=add(new THREE.CylinderGeometry(0.22,0.22,0.3,12),toon('#c9ced4'),x,0.4,s*0.9);h.rotation.x=PI/2;}));
+  add(new THREE.BoxGeometry(0.06,0.18,0.4),new THREE.MeshBasicMaterial({color:'#fff7d0'}),2.81,0.95,0.68);add(new THREE.BoxGeometry(0.06,0.18,0.4),new THREE.MeshBasicMaterial({color:'#fff7d0'}),2.81,0.95,-0.68);
+  add(new THREE.BoxGeometry(0.5,0.16,1.6),toon('#2b2d31'),1.9,1.84,0);const L1=add(new THREE.BoxGeometry(0.46,0.16,0.7),red,1.9,1.94,0.4),L2=add(new THREE.BoxGeometry(0.46,0.16,0.7),red2,1.9,1.94,-0.4);
+  const C1=add(new THREE.BoxGeometry(0.14,0.14,0.14),red,-2.45,2.66,0.9),C2=add(new THREE.BoxGeometry(0.14,0.14,0.14),red2,-2.45,2.66,-0.9);
+  const pl=new THREE.PointLight(0xff2020,0,7,1.5);pl.position.set(1.9,2.4,0);car.add(pl);
+  car.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  let t=0;AMBU={sc,car,
+    start(){t=0;car.position.set(-16,0,1.6);},
+    tick(dt){t+=dt;const k=Math.min(1,t/3.4),e=1-Math.pow(1-k,3);car.position.x=lerp(-16,-1.2,e);
+      if(t>3.4){car.position.x=-1.2+Math.min(1,(t-3.4)/2.5)*0;}
+      const on=Math.floor(t*7)%2===0;red.color.set(on?'#ff2a2a':'#3a0408');red2.color.set(on?'#3a0408':'#ff2a2a');pl.intensity=on?18:4;},
+    wide(){aim(_c3.set(5.5,2.4,8.5),_c1.set(-1.5,1.2,0),40);},
+    close(){const p=car.position;aim(_c3.set(p.x+6.0,1.7,p.z+4.2),_c1.set(p.x+0.6,1.4,p.z),30);}};
+  return AMBU;}
+
 /* ================= EPISODE 2 · CASES ================= */
 const CASES={};
 const _tp=new V3();
@@ -2237,7 +2334,8 @@ CASES.court={id:'court',cmDanger:{pose:'fist',t:'危險！',icon:'⚠️',tag:'�
     S.me.root.visible=true;S.me.root.position.set(9.9,0,-11.3);S.me.root.rotation.set(0,PI+0.7,0);S.me.pose='idle';S.me.setMood('sad');
     S.tea.root.position.set(9.6,0,-6.0);S.tea.root.visible=true;camCut(new V3(10.6,1.25,-15.8),new V3(8.4,0.5,-13.3));await fade(0,350);
     await walkTo(S.tea,new V3(9.1,0,-12.2),1.1,'walk');faceTo(S.tea,8.3,-13.4);},
-  after:[['xiaoyu','好痛……我的頭，還有肩膀……好痛……'],['teacher','小宇，先不要動！老師馬上叫救護車，也通知你們的家長。'],['nar','小宇送到醫院治療，住了好一段時間，還要請人照顧。']],
+  after:[['xiaoyu','好痛……我的頭，還有肩膀……好痛……'],['teacher','小宇，先不要動！老師馬上叫救護車，也通知你們的家長。'],()=>cmAmb(),['nar','救護車很快就到了，把小宇送到醫院。小宇住院了好一段時間，還要請人照顧。'],()=>cmHide()],
+  afterShort:[['xiaoyu','好痛……我的頭，還有肩膀……好痛……'],['teacher','小宇，先不要動！老師馬上叫救護車，也通知你們的家長。'],()=>cmAmb(),['nar','救護車很快就到了，把小宇送到醫院。'],()=>cmHide()],
   regret:[['me','我只是想把球拿回來……我沒有想要他受傷……'],()=>FX.devilIn(),['devil','是他拿走你的球，是他先不對，不關你的事。']],
   angel:[['angel','就算對方先不對，也不能用追趕、貼近的方式討回來。生氣的時候，更要冷靜。'],['angel','我讓時間倒轉，回到你剛剛握緊拳頭的時候。這一次，請你自己做出正確的選擇！']],
   keyLines:[()=>{S.ball.visible=true;},['nar','小宇抱著球走了，你握緊了拳頭，心跳好快。'],['angel','這一次，你可以自己選。生氣的時候，想一想最先要做的事。']],
@@ -2329,81 +2427,100 @@ CASES.wall={id:'wall',cmDanger:{pose:'throwWind',t:'丟！',icon:'🪨',tag:'用
     ['angel','答對了！石頭不丟。圍牆那一邊你看不到，丟出去的石頭可能砸到車、也可能砸到人。']],
 };
 
-/* ---- 3. 遊戲區跳下來 ---- */
-CASES.play={id:'play',cmDanger:{pose:'jumpReady',t:'跳！',icon:'🦘',tag:'從平台往下跳',sfx:'咻——',vtag:'下面經過的同學'},mock:'你又被我騙了！判賠 15 萬元，同學的頭受了傷，你的爸爸媽媽也要一起賠！',roles:['xiaomei','teacher','xiaokai'],amb:'plaza',no:3,ref:'',title:'平台上往下跳',icon:'🧗',badge:'先看再下徽章',badgeIcon:'👀',
-  desc:'四年級學生爬到遊戲區的平台上，從高處往下跳，壓到下方經過的同學，同學頭頸部受傷，後腦撞擊地面。',award:'判賠 15 萬元',laws:[0,1,4],
-  preview:'午休時間，遊戲區的攀爬平台上，你想跳下去……',hint:'要從高處下來之前，最先要確認什麼？',
-  lesson:'從高的地方下來，要先看清楚、問一問「下面有人嗎」，等地面沒人，再面對網子慢慢爬下來。',
-  build(){const sc=buildPlay();const S={scene:sc};
-    S.mei=npc(sc,'xiaomei',[2.2,0,-16],0);S.kai=npc(sc,'xiaokai',[-3.4,0,-4.2],PI/2);S.tea=npc(sc,'teacher',[7,0,-2.5],-PI/2);S.me=meChar(sc,[-1.2,0,-3.4],0);S.tea.root.visible=false;S.me.root.visible=false;
-    S.actors=[S.mei,S.kai,S.tea,S.me];S.victim=S.mei;S.floor=(x,z)=>(Math.abs(x)<1.1&&z<-6.9&&z>-9.1)?1.0:0;S.eye=1.25;Object.assign(CHAR,{xiaomei:S.mei,xiaokai:S.kai,teacher:S.tea,me:S.me});
-    /* 小美 walks toward the play frame, stops a little away to tie her shoe (squat), and waits */
-    /* climb rung by rung on the net ladder; hands alternate with each rung (me.climbK) */
-    S.climb=async(eyes,looks,per=0.62)=>{const me=S.me;me.pose='climb';S.climbPitch=0.6;S.climbOff=new V3(0,Math.cos(0.6)*1.2,-Math.sin(0.6)*1.2);rig.fp=true;rig.bob=0;const n=eyes.length-1;
-      for(let i=0;i<n;i++){const a=eyes[i],b=eyes[i+1],la=looks[i],lb=looks[i+1];SFX.step&&SFX.step(false);
-        await tween(per,u=>{const e=easeIO(u);rig.pos.lerpVectors(a,b,e);rig.look.lerpVectors(la,lb,e);rig.pos.y+=Math.sin(u*PI)*0.03;me.climbK=i+u;});}
-      me.climbK=null;S.climbOff=null;};
-    S.ladder=(n,up)=>{const E=[],L=[],ey=Math.cos(0.6)*1.2,ez=Math.sin(0.6)*1.2;for(let i=0;i<=n;i++){const f=0.08+0.92*(up?i/n:1-i/n);E.push(new V3(0,f+ey,-5.7-1.2*f-ez));L.push(up?new V3(0,f+ey+0.2,-5.7-1.2*f-ez-1.3):new V3(0,f+ey-0.6,-5.7-1.2*f-ez-1.0));}return[E,L];};
-    S.meiOn=()=>{const m=S.mei;m.root.visible=true;m.root.position.set(1.9,0,-15.6);m.root.rotation.set(0,0,0);m.setMood('');m.gaitV=1.0;m.pose='walk';S.jog=true;};
-    S.tick=dt=>{if(!S.jog)return;const m=S.mei,p=m.root.position;p.z+=1.0*dt;if(p.z>=-11.6){p.z=-11.6;S.jog=false;m.gaitV=null;m.pose='tie';}};
-    S.start=()=>{camCut(new V3(-1.2,1.25,-3.4),new V3(0,1.1,-6.8),true);S.mei.pose='idle';S.kai.pose='idle';S.mei.root.visible=false;S.jog=false;};
-    S.cleanup=()=>S.actors.forEach(c=>LIVE.delete(c));return S;},
-  intro:[['nar','中午的遊戲時間，你是四年級的學生，和小凱來到遊戲區的攀爬架。'],['xiaokai','這個網梯爬上去，上面的平台很高耶！'],
-    ()=>FX.devilIn(),['devil','爬到最高的平台上去！從上面跳下來，一定超帥的！']],
+/* ---- 3. 司令台往下跳（分支：撞到同學／自己跌落受傷） ---- */
+CASES.stage={id:'stage',cmDanger:{pose:'jumpReady',t:'跳！',icon:'🦘',tag:'從司令台往下跳',sfx:'咻——',vtag:'下面經過的同學'},mock:'你又被我騙了！判賠 15 萬元，同學的頭受了傷，你的爸爸媽媽也要一起賠！',roles:['xiaomei','teacher','xiaokai'],amb:'plaza',no:3,ref:'',title:'司令台往下跳',icon:'🏫',badge:'走樓梯徽章',badgeIcon:'🪜',
+  desc:'學生從高台上往下跳，壓到下方經過的同學，同學頭頸部受傷，後腦撞擊地面。',award:'判賠 15 萬元',laws:[0,1,4],
+  preview:'下課時間，司令台上，你想從上面跳下去……',hint:'要從高處下來時，最安全的方法是什麼？',
+  lesson:'司令台很高，不能往下跳，也不能助跑跳遠。要下來，就走旁邊的樓梯，一階一階走下來。',
+  build(){const sc=buildStage();const S={scene:sc};
+    S.mei=npc(sc,'xiaomei',[-8,0,-6.75],PI/2);S.kai=npc(sc,'xiaokai',[-3.2,0,-3.0],PI*0.85);S.tea=npc(sc,'teacher',[-9,0,-2],PI/2);S.me=meChar(sc,[-1.5,0,-2.6],PI);S.tea.root.visible=false;S.me.root.visible=false;S.mei.root.visible=false;
+    S.actors=[S.mei,S.kai,S.tea,S.me];S.victim=S.mei;S.floor=stageFloor;S.eye=1.25;Object.assign(CHAR,{xiaomei:S.mei,xiaokai:S.kai,teacher:S.tea,me:S.me});
+    /* 小美 walks along the front of the stage, stops to tie her shoe */
+    S.meiOn=()=>{const m=S.mei;m.root.visible=true;m.root.position.set(-8.5,0,-6.75);m.root.rotation.set(0,PI/2,0);m.setMood('');m.gaitV=1.0;m.pose='walk';S.jog=true;};
+    S.tick=dt=>{if(!S.jog)return;const m=S.mei,p=m.root.position;p.x+=1.0*dt;if(p.x>=-2.4){p.x=-2.4;S.jog=false;m.gaitV=null;m.pose='tie';}};
+    /* injuries for the self-fall branch: head bandage (hair shaved) + arm cast, on the player's own model */
+    S.gear=[];S.wear=()=>{const me=S.me;const put=(bn,mesh,pos,rot)=>{const b=me.B&&me.B[bn];if(!b)return;b.add(mesh);const ws=b.getWorldScale(new V3());mesh.scale.set(1/ws.x,1/ws.y,1/ws.z);mesh.position.set(pos[0]/ws.x,pos[1]/ws.y,pos[2]/ws.z);if(rot)mesh.rotation.set(...rot);S.gear.push(mesh);};
+      const cap=new THREE.Mesh(new THREE.SphereGeometry(0.16,28,16,0,PI*2,0,PI*0.56),toon('#f7f7f2'));cap.scale.set(1,0.95,1.08);put('head',cap,[0,0.1,-0.025],[-0.22,0,0]);
+      const bd=new THREE.Mesh(new THREE.TorusGeometry(0.158,0.02,8,32),toon('#e6e5de'));bd.scale.set(1,1.08,1);put('head',bd,[0,0.1,-0.02],[PI/2-0.22,0,0]);
+      put('head',new THREE.Mesh(new THREE.BoxGeometry(0.07,0.06,0.014),toon('#ffffff')),[0.06,0.2,0.1],[-0.7,0.3,0]);
+      const cast=new THREE.Mesh(new THREE.CylinderGeometry(0.038,0.034,0.24,14),toon('#f4f4ef'));put('rightLowerArm',cast,[-0.12,0,0],[0,0,PI/2]);
+};
+    S.unwear=()=>{S.gear.forEach(m=>m.parent&&m.parent.remove(m));S.gear.length=0;};
+    /* self-fall: back up, run, toe catches the edge strip, pitch forward, right hand hits first, then the head */
+    S.selfFall=async()=>{const me=S.me,m=S.mei;S.jog=false;
+      await moveFP(new V3(0,2.25,-10.4),1.3,'',new V3(0,1.6,-4),easeIO);
+      await moveFP(new V3(0,2.25,-7.62),0.85,'run',new V3(0,1.1,-4));
+      GAME.jumpAt=1;SFX.step&&SFX.step(true);rig.shake=0.15;
+      await tween(0.12,k=>{rig.look.set(0,lerp(1.1,-0.4,k),-5.0);rig.pos.z=lerp(-7.62,-7.45,k);});
+      /* third person, slow motion: the fall seen from the side */
+      me.root.visible=true;me.root.rotation.order='YXZ';me.root.position.set(0,ST.top,-7.52);me.root.rotation.set(0.15,0,0);me.pose='brace';me.setMood('surprised');me.snap=true;
+      rig.fp=false;rig.bob=0;rig.roll=0;camCut(new V3(3.3,1.25,-6.0),new V3(0,0.65,-7.0));slowmo(0.25,3.5);
+      let hand=false;await tween(0.5,k=>{const e=easeI(k);me.root.rotation.set(lerp(0.15,1.42,e),0,0);me.root.position.set(0,lerp(ST.top,0.02,e),lerp(-7.52,-7.32,k));
+        if(!hand&&k>0.78){hand=true;SFX.crack();impact();}});
+      SFX.thud();SFX.crack();rig.shake=0.5;flash('#ffffff',300);me.pose='lie';me.setMood('hurt');await wait(0.9);slowmo(1,0);await fade(1,350);
+      me.root.rotation.order='XYZ';me.root.rotation.set(0,PI-0.5,0);me.root.position.set(0.2,0,-6.6);me.pose='hurtArm';me.snap=true;m.pose='idle';m.setMood('sad');faceTo(m,0.2,-6.6);
+      S.tea.root.visible=true;S.tea.root.position.set(-9,0,-2.5);rig.fp=true;camCut(new V3(2.8,1.35,-3.4),new V3(0.1,0.5,-6.4));await fade(0,350);
+      await walkTo(S.tea,new V3(-0.7,0,-5.9),2.2,'run');faceTo(S.tea,0.2,-6.6);S.tea.pose='lean';};
+    S.start=()=>{camCut(new V3(-1.5,1.25,-2.6),new V3(0,1.6,-9),true);S.kai.pose='idle';S.jog=false;};
+    S.cleanup=()=>{S.unwear();S.me.root.rotation.order='XYZ';S.actors.forEach(c=>LIVE.delete(c));};return S;},
+  intro:[['nar','下課時間，你和小凱來到操場前的司令台。'],['xiaokai','司令台好高喔，站在上面可以看到整個操場！'],
+    ()=>FX.devilIn(),['devil','跑上司令台！從上面跳下來，一定超帥的！']],
   steps:[
-    {lines:[['nar','紅色的平台離地面大約一公尺，前面有一面網梯。']],q:'你要怎麼辦？',devil:'爬上網梯，站到平台上！',good:'慢慢爬上網梯',cm:{pose:'climb',t:'爬！',icon:'🧗',tag:'爬上網梯',sfx:'沙沙',vtag:'攀爬網'},
-      act:async(S,v)=>{await moveFP(new V3(0,1.25,-5.55),1.3,'walk',new V3(0,1.45,-6.6));const [E,L]=S.ladder(5,true);E[0].copy(rig.pos);await S.climb(E,L);
-        S.me.pose='idle';await moveFP(new V3(0,2.25,-7.6),0.7,'walk',new V3(0,2.1,-9.5));S.meiOn();await moveFP(new V3(0.85,2.25,-7.7),1.0,'walk',new V3(2.4,0.6,-12.2));}},
-    {lines:[['nar','你站在平台邊緣，離地面一公尺高。下面有一位同學走過來，蹲下來綁鞋帶。'],['devil','不要管她！直接跳下去，她會閃開的！']],q:'你要怎麼做？',devil:'直接跳下去！',good:'先看清楚下面有沒有人'}],
+    {lines:[['nar','司令台離地面大約一公尺，兩邊各有一座樓梯。']],q:'你要怎麼辦？',devil:'從樓梯一路跑上去！',good:'慢慢走上去',cm:{pose:'run',t:'衝！',icon:'🏃',tag:'跑上司令台',sfx:'噠噠',vtag:'樓梯'},
+      act:async(S,v)=>{await moveFP(new V3(5.8,1.25,-5.9),1.9,'run',new V3(5.8,1.6,-8));
+        for(const [y,z] of [[1.5,-6.75],[1.75,-7.05],[2.0,-7.35],[2.25,-7.85]])await moveFP(new V3(5.8,y,z),0.2,'',new V3(5.8,y+0.1,-9.5));
+        S.meiOn();await moveFP(new V3(0,2.25,-7.8),2.0,'walk',new V3(-3,0.6,-6.8));}},
+    {lines:[['nar','你站在司令台邊緣，離地面一公尺高。下面有一位同學走過來，蹲下來綁鞋帶。'],['devil','不要管她！直接跳下去，她會閃開的！']],q:'你要怎麼做？',devil:'直接跳下去！',good:'走旁邊的樓梯下去'}],
   keyIdx:1,
-  async tragedy(S,v){const m=S.mei;S.jog=false;m.root.visible=true;m.gaitV=null;
-    /* she finishes tying her shoe and walks on along the side of the platform */
-    S.me.pose='jumpReady';if(v==='yell'){toast('「讓開！我要跳了！」',1300);}
-    m.pose='idle';await wait(0.35);const L=new V3(1.9,0,-7.75),Tj=v==='hang'?0.38:0.30;
-    walkTo(m,new V3(1.9,0,-6.6),(L.distanceTo(m.root.position)+1.15)/1.1,'walk',{keep:true});
+  async tragedy(S,v){S.v=v;if(v==='run')return S.selfFall();
+    const m=S.mei;S.jog=false;m.root.visible=true;m.gaitV=null;S.me.pose='jumpReady';if(v==='yell'){toast('「讓開！我要跳了！」',1300);}
+    m.pose='idle';await wait(0.35);const L=new V3(0,0,-6.75),Tj=0.30;
+    walkTo(m,new V3(3.0,0,-6.75),(L.distanceTo(m.root.position)+3.0)/1.1,'walk',{keep:true});
     const lead=Math.max(0.2,L.distanceTo(m.root.position)/1.1-Tj);
-    if(v==='glance'){await tween(0.45,k=>rig.look.lerp(_tp.set(1.9,0.2,-10.5),0.12));await tween(0.35,k=>rig.look.lerp(_tp.set(3.5,0.4,-6.0),0.12));await tween(Math.max(0.1,lead-0.8),k=>rig.look.lerp(_tp.set(2.2,0.6,-7.6),0.1));}
-    else if(v==='hang'){await par(moveFP(new V3(1.0,1.7,-7.7),0.6,'',new V3(2.4,0.5,-8.4),easeIO),wait(0.6));await tween(Math.max(0.1,lead-0.6),k=>rig.look.lerp(_tp.copy(m.root.position).setY(0.7),0.08));}
+    if(v==='glance'){await tween(0.45,k=>rig.look.lerp(_tp.set(4,0.3,-6.2),0.12));await tween(0.35,k=>rig.look.lerp(_tp.set(-5,0.3,-6.2),0.12));await tween(Math.max(0.1,lead-0.8),k=>rig.look.lerp(_tp.set(0,0.6,-6.4),0.1));}
     else await tween(lead,k=>rig.look.lerp(_tp.copy(m.root.position).setY(0.7),0.08));
-    /* take-off: small hop, ballistic fall; feet meet her head and neck about 0.3 s later */
-    GAME.jumpAt=1;S.me.pose='jump';SFX.fly&&SFX.fly();const r0=rig.pos.clone(),vy=v==='hang'?0:1.2;rig.fp=true;rig.bob=0;
-    await tween(Tj,k=>{const t=k*Tj;rig.pos.set(lerp(r0.x,1.7,k),r0.y+vy*t-4.9*t*t,lerp(r0.z,-7.75,k));rig.look.set(lerp(rig.look.x,2.0,0.2),lerp(rig.look.y,0.9,0.2),lerp(rig.look.z,-7.6,0.2));});
+    /* take-off: small hop, ballistic fall; feet meet her head and neck */
+    GAME.jumpAt=1;S.me.pose='jump';SFX.fly&&SFX.fly();const r0=rig.pos.clone(),vy=1.2;rig.fp=true;rig.bob=0;
+    await tween(Tj,k=>{const t=k*Tj;rig.pos.set(r0.x,r0.y+vy*t-4.9*t*t,lerp(r0.z,-6.95,k));rig.look.set(lerp(rig.look.x,0.2,0.2),lerp(rig.look.y,0.9,0.2),lerp(rig.look.z,-6.4,0.2));});
     FX.devilOut();impact();SFX.thud();SFX.crack();m.pose='trip';m.setMood('hurt');S.me.pose='land';
-    /* she buckles and falls backward; the back of her head hits the ground. I fall past her and land sitting */
-    const q=m.root.position.clone(),r1=rig.pos.clone();
-    await par(tween(0.62,k=>{const e=easeI(k);m.root.rotation.set(-(PI/2-0.05)*e,0,0);m.root.position.set(q.x,0.1*e,q.z+0.15*k);}),
-      tween(0.6,k=>{const t=k*0.6;rig.pos.set(lerp(r1.x,2.75,k),Math.max(0.85,r1.y-1.6*t-4.9*t*t),lerp(r1.z,-6.9,k));rig.roll=0.2*easeO(k);rig.look.set(1.9,lerp(0.6,0.2,k),lerp(-7.8,-8.4,k));}));
-    SFX.thud();rig.shake=0.35;m.pose='lie';
-    await tween(0.3,k=>m.root.rotation.x=-(PI/2-0.05)+0.06*Math.sin(k*PI));
-    await wait(1.0);await fade(1,350);
-    S.me.root.visible=true;S.me.root.position.set(2.8,0,-7.3);S.me.root.rotation.set(0,-2.3,0);S.me.pose='idle';S.me.setMood('sad');S.me.gaitV=null;rig.roll=0;
-    S.tea.root.visible=true;S.tea.root.position.set(-4.5,0,-9.5);camCut(new V3(4.9,1.45,-10.4),new V3(2.2,0.45,-7.9));await fade(0,350);
-    await walkTo(S.tea,new V3(1.0,0,-8.9),1.8,'run');faceTo(S.tea,1.9,-8.6);S.tea.pose='lean';},
-  after:[['xiaomei','好痛……我的頭……後面好痛……'],['teacher','小美，不要動！老師馬上叫救護車，也要通知家長。'],['nar','小美的後腦重重撞到地上，躺了好一陣子，才在老師的照顧下慢慢坐起來。']],
-  regret:[['me','我只是想跳下來而已……我沒有看到她……'],()=>FX.devilIn(),['devil','她自己跑過來的，誰叫她不看路？']],
-  angel:[['angel','從高的地方往下跳，下面的人根本來不及閃。看不看得到，都要先確認。'],['angel','我讓時間倒轉，回到你站在平台上的時候。這一次，請你自己選。']],
-  keyLines:[()=>{S.tea.pose='idle';S.tea.root.visible=false;S.me.pose='idle';const m=S.mei;S.jog=false;m.root.position.set(1.9,0,-11.6);m.root.rotation.set(0,0,0);m.pose='tie';m.setMood('');m.gaitV=null;camCut(new V3(0.85,2.25,-7.7),new V3(2.4,0.6,-12.2),true);},['nar','你站在平台邊緣，離地面一公尺高。'],['angel','這一次，你可以自己選。想一想，從高處下來之前，要先確認什麼？']],
-  key:{q:'你站在平台上，要怎麼下去？',opts:[
-    {t:'先看清楚下面，大聲問「下面有人嗎？」，等人走開，再面對網梯慢慢爬下去',ok:true},
-    {t:'看一眼，覺得她走過去了，就直接跳',v:'glance',after:'你只看了一眼，沒想到她就在平台正下方。你已經落下來了。',why:'只看一眼不夠，而且人在移動，你跳下去的時候，她可能剛好走到下面。'},
+    const q=m.root.position.clone(),r1=rig.pos.clone();m.root.rotation.order='YXZ';
+    await par(tween(0.62,k=>{const e=easeI(k);m.root.rotation.set(-(PI/2-0.05)*e,PI/2,0);m.root.position.set(q.x-0.15*k,0.1*e,q.z);}),
+      tween(0.6,k=>{const t=k*0.6;rig.pos.set(lerp(r1.x,0.5,k),Math.max(0.85,r1.y-1.6*t-4.9*t*t),lerp(r1.z,-6.1,k));rig.roll=0.2*easeO(k);rig.look.set(lerp(0.2,-0.8,k),lerp(0.6,0.2,k),-6.8);}));
+    SFX.thud();rig.shake=0.35;m.pose='lie';await wait(1.0);await fade(1,350);
+    const mx=m.root.position.x;S.me.root.visible=true;S.me.root.position.set(mx+1.3,0,-6.3);S.me.root.rotation.set(0,-1.9,0);S.me.pose='idle';S.me.setMood('sad');S.me.gaitV=null;rig.roll=0;rig.fp=true;
+    S.tea.root.visible=true;S.tea.root.position.set(mx-9,0,-2.5);camCut(new V3(mx+0.2,1.5,-2.5),new V3(mx-0.4,0.45,-6.6));await fade(0,350);
+    await walkTo(S.tea,new V3(mx-1.75,0,-6.05),2.2,'run');faceTo(S.tea,mx-1.3,-6.75);S.tea.pose='lean';},
+  after:[['xiaomei','好痛……我的頭……後面好痛……'],['teacher','小美，不要動！老師馬上叫救護車，也要通知家長。'],()=>cmAmb(),['nar','救護車很快就到了。小美的後腦重重撞到地上，被送到醫院檢查治療。'],()=>cmHide()],
+  afterShort:[['xiaomei','好痛……我的頭……後面好痛……'],['teacher','小美，不要動！老師馬上叫救護車，也要通知家長。'],()=>cmAmb(),['nar','救護車很快就到了，把小美送到醫院。'],()=>cmHide()],
+  regret:[['me','我只是想跳下來而已……我沒有看到她……'],()=>FX.devilIn(),['devil','她自己走過來的，誰叫她不看路？']],
+  angel:[['angel','從高的地方往下跳，下面的人根本來不及閃，自己也很容易摔傷。'],['angel','我讓時間倒轉，回到你站在司令台上的時候。這一次，請你自己選。']],
+  keyLines:[()=>{S.tea.pose='idle';S.tea.root.visible=false;S.me.pose='idle';S.me.root.visible=false;const m=S.mei;S.jog=false;m.root.rotation.order='XYZ';m.root.position.set(-2.4,0,-6.75);m.root.rotation.set(0,PI/2,0);m.pose='tie';m.setMood('');m.gaitV=null;camCut(new V3(0,2.25,-7.8),new V3(-3,0.6,-6.8),true);},
+    ['nar','你站在司令台邊緣，離地面一公尺高。'],['angel','這一次，你可以自己選。想一想，要從高處下來，最安全的方法是什麼？']],
+  key:{q:'你站在司令台上，要怎麼下去？',opts:[
+    {t:'不跳，走到旁邊的樓梯，一階一階走下去',ok:true},
+    {t:'看一眼，覺得她走過去了，就直接跳',v:'glance',after:'你只看了一眼，沒想到她剛好走到司令台前面。你已經跳下去了。',why:'只看一眼不夠，人一直在移動，你跳下去的時候，她可能剛好走到下面。'},
     {t:'大喊「我要跳了」，然後馬上跳下去',v:'yell',after:'你一喊完就跳，小美嚇了一跳，根本來不及閃開。',why:'大喊之後馬上跳，別人沒有時間反應。'},
-    {t:'坐在邊緣，慢慢用手撐著跳下去，比較安全',v:'hang',after:'你用手撐著往下滑，沒看清楚地面，雙腳落在經過的小美身上。',why:'不管用什麼方式往下跳，只要沒先確認地面，就可能壓到人。'}]},
+    {t:'往後退幾步，助跑跳遠一點，就不會壓到人',v:'run',self:true,award:'手骨折、頭部縫 12 針',desc:'助跑往下跳，腳尖勾到司令台邊緣，整個人往前撲倒：右手撐地骨折，頭部撞破縫了 12 針、頭髮要剃掉，住院一個禮拜。',
+      after:'你往後退了幾步，用力助跑。就在跳起來的那一刻，腳尖勾到司令台邊緣的防滑條，整個人往前撲了下去。',
+      lines:[['me','好痛……我的手……我的頭……'],['teacher','不要動！手不要亂動，老師馬上叫救護車，也通知你的家長。'],()=>cmAmb(),['nar','救護車很快就到了，把你送到醫院。'],()=>cmHide()],
+      why:'助跑會讓速度變快、更難控制，只要腳勾到一點點東西，就會從高處摔下來。不管有沒有人，都不能從司令台往下跳。'}]},
   async safe(S){const m=S.mei;S.jog=false;m.root.visible=true;m.gaitV=null;S.me.pose='idle';
-    await camTo(new V3(0.95,2.25,-7.6),new V3(1.9,0.3,-11.0),0.9);toast('「下面有人嗎？」',1600);SFX.pop();
-    m.pose='idle';await wait(0.5);m.pose='wave';faceTo(m,0.85,-7.7);await wait(0.9);
-    await par(walkTo(m,new V3(1.9,0,-4.2),4.6,'walk'),tween(4.6,k=>rig.look.set(lerp(rig.look.x,1.9,0.1),lerp(rig.look.y,0.45,0.1),lerp(rig.look.z,m.root.position.z,0.1))));m.pose='idle';
-    /* walk to the top of the net ladder; look left, then right, along the ground below */
-    await moveFP(new V3(0,2.25,-7.35),0.9,'walk',new V3(0,0.4,-5.2));
-    await camTo(new V3(0,2.25,-7.35),new V3(-2.2,0.2,-5.0),0.8);await wait(0.35);
-    await camTo(new V3(0,2.25,-7.35),new V3(2.4,0.2,-5.0),1.0);await wait(0.35);
-    /* turn around to face the net, then climb down backwards, rung by rung */
-    await camTo(new V3(0,2.2,-7.25),new V3(0,1.9,-9.0),0.8);
-    const [E,L]=S.ladder(5,false);E[0].copy(rig.pos);await S.climb(E,L,0.66);S.me.pose='idle';
-    await moveFP(new V3(0,1.25,-4.8),0.6,'walk',new V3(0,1.2,-6.5));
-    S.mei.setMood('joy');faceTo(S.mei,0.2,-4.9);await camTo(new V3(0.2,1.25,-4.9),new V3(1.9,1.05,-4.2),0.9);},
-  safeLines:[['xiaomei','學長，剛剛你有看到我嗎？'],['me','我先問了「下面有人嗎」，等你過去，才面對網梯慢慢爬下來的。'],['xiaomei','太好了，我差點就走到攀爬架下面了！'],
+    await camTo(new V3(0,2.25,-7.8),new V3(4.5,1.6,-7.6),0.9);
+    await moveFP(new V3(5.8,2.25,-7.85),2.6,'walk',new V3(5.8,1.9,-6.0));
+    for(const [y,z] of [[2.0,-7.35],[1.75,-7.05],[1.5,-6.75],[1.25,-6.25]]){SFX.step&&SFX.step(false);await moveFP(new V3(5.8,y,z),0.42,'',new V3(5.8,y-0.35,-4.5));}
+    m.pose='idle';await wait(0.3);walkTo(m,new V3(4.2,0,-5.4),2.4,'walk');await camTo(new V3(5.8,1.25,-6.0),new V3(4.2,1.05,-5.4),1.2);await wait(1.2);m.pose='idle';faceTo(m,5.8,-6.0);S.mei.setMood('joy');},
+  safeLines:[['xiaomei','你是走樓梯下來的耶！'],['me','司令台很高，跳下來太危險了，我走樓梯就好。'],['xiaomei','還好你沒有跳，我剛剛就蹲在前面綁鞋帶！'],
     async S=>{S.mei.pose='cheer';},
-    ['angel','答對了！從高處下來之前，先看、先問、先等，再面對網梯慢慢爬下來，大家都平安。']],
+    ['angel','答對了！司令台很高，不能往下跳，也不能助跑跳遠。走旁邊的樓梯，一階一階走下來，大家都平安。']],
+  /* hospital scene for the self-fall branch */
+  async hospital(S,o){GAME.state='hospital:stage';musicPlay('devil');await fade(1,400);if(hand)hand.visible=false;cmHide();
+    const me=S.me,HX=200;me.root.visible=true;me.root.rotation.order='XYZ';me.root.rotation.set(-PI/2,0,0);me.root.position.set(HX-0.6,0.68,-0.62);me.pose='bed';me.setMood('hurt');me.snap=true;S.wear();
+    rig.fp=true;rig.roll=0;camCut(new V3(HX+1.7,1.6,0.9),new V3(HX-0.6,0.75,-1.5));await fade(0,400);
+    await sayAll([['nar','你的右手骨折，頭部撞破縫了十二針，頭髮也要剃掉，在醫院住了一個禮拜。']],S);
+    devil.laugh=1;FX.devilIn();SFX.laugh();stinger('devil');
+    await sayAll([['devil','哈哈，手斷了、頭也縫了，這就是不聽勸的下場！']],S);
+    angel.slot='angel';angel.root.visible=true;angel.out=false;angel.pop=0;angel.snapPos=true;angel.setMood('hurt');SFX.sob();
+    await sayAll([['angel','嗚……對不起，這一次我沒能保護你……']],S);},
 };
 
 /* ================= LOOP & BOOT ================= */
@@ -2462,7 +2579,7 @@ async function bootVRM(){const go=$('#go'),lb=$('#lbar'),bar=lb.querySelector('i
   }catch(e){console.warn('載入失敗，改用內建角色',e);GAME.vrmOK=!!(VCH.me_b&&VCH.me_g);}
   bar.style.width='100%';lab.textContent='準備完成！';await new Promise(r=>setTimeout(r,250));
   lb.classList.add('hide');go.classList.remove('hide');go.disabled=false;GAME.vrm=!!VRM_ME;try{['b','g'].forEach(g=>{const t=thumbFor('me_'+g);const e=$('#ph_'+g);if(t&&e){e.textContent='';e.style.backgroundImage='url('+t+')';e.style.backgroundSize='cover';}});}catch(e){console.warn('chip thumb',e);}GAME.ready=true;}
-GAME.dbg=()=>({MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
+GAME.dbg=()=>({cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
 GAME.start=()=>$('#go').click();
 window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
 bootVRM();
