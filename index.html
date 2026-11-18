@@ -2387,12 +2387,19 @@ function makeAmbulance(){
   G.updateMatrixWorld(true);
   const rc=new THREE.Raycaster();const surf=(o,d)=>{rc.set(o,d.clone().normalize());const h=rc.intersectObject(body,false)[0];if(!h)return null;return{p:h.point,n:h.face.normal.clone().transformDirection(body.matrixWorld)};};
   const stick=(mesh,h,off=0.004)=>{mesh.position.copy(h.p).addScaledVector(h.n,off);mesh.lookAt(h.p.clone().addScaledVector(h.n,1));G.add(mesh);return mesh;};
-  /* windscreen */
-  {const sh=new THREE.Shape();sh.moveTo(1.8,1.22);sh.lineTo(0.98,1.84);sh.lineTo(0.98,1.84);sh.lineTo(1.8,1.22);
-   const q=new THREE.BufferGeometry();const y0=1.23,y1=1.83,x0=1.79,x1=0.99,hw=SZ-0.08,v=[x0,y0,-hw,x0,y0,hw,x1,y1,hw,x1,y1,-hw];
-   q.setAttribute('position',new THREE.Float32BufferAttribute(v,3));q.setIndex([0,1,2,0,2,3]);q.computeVertexNormals();const n=new V3(0.6,0.8,0).normalize();
-   const ws=add(q,M.glass,false);ws.position.addScaledVector(n,0.012);
-   const wip=add(new THREE.BoxGeometry(0.02,0.015,0.75),M.black,false);wip.position.set(1.72,1.29,-0.2);wip.rotation.z=0.65;const wip2=wip.clone();wip2.position.z=0.55;G.add(wip2);}
+  /* windscreen: found on the real body surface by ray casts, black ceramic border, glass, wipers */
+  {const n=new V3(0.63,0.776,0).normalize(),hit=(x,y,z)=>surf(new V3(x,y,z).addScaledVector(n,2),n.clone().negate());
+   const mk=(x0,y0,x1,y1,hw,off,mat,order)=>{const P=[hit(x0,y0,-hw),hit(x0,y0,hw),hit(x1,y1,hw),hit(x1,y1,-hw)];if(P.some(q=>!q))return null;
+     const v=[];P.forEach(q=>{const p=q.p.clone().addScaledVector(n,off);v.push(p.x,p.y,p.z);});const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));
+     g.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,1,1,0,1],2));g.setIndex([0,2,1,0,3,2]);g.computeVertexNormals();const o=add(g,mat,false);o.renderOrder=order;return o;};
+   mk(1.76,1.235,1.0,1.83,SZ-0.04,0.004,M.black,1);
+   const wsMat=P({color:'#1b2a36',metalness:0.1,roughness:0.03,clearcoat:1,clearcoatRoughness:0.02,ei:1.8});
+   mk(1.71,1.27,1.04,1.79,SZ-0.11,0.008,wsMat,2);
+   const tint=new THREE.MeshBasicMaterial({map:canvasTex(256,128,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'rgba(120,150,180,.28)');gr.addColorStop(0.55,'rgba(120,150,180,.05)');gr.addColorStop(1,'rgba(160,200,235,.35)');g.fillStyle=gr;g.fillRect(0,0,w,h);
+     g.globalCompositeOperation='lighter';[[40,46,.22],[96,18,.14],[170,30,.18]].forEach(([x,wd,a])=>{const sg=g.createLinearGradient(x,0,x+wd,0);sg.addColorStop(0,'rgba(255,255,255,0)');sg.addColorStop(.5,`rgba(255,255,255,${a})`);sg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=sg;g.beginPath();g.moveTo(x,0);g.lineTo(x+wd,0);g.lineTo(x+wd-40,h);g.lineTo(x-40,h);g.closePath();g.fill();});},[1,1],true),transparent:true,depthWrite:false});
+   mk(1.71,1.27,1.04,1.79,SZ-0.11,0.01,tint,3);
+   [-0.25,0.42].forEach(z=>{const h=hit(1.69,1.29,z);if(!h)return;const w=add(new THREE.BoxGeometry(0.02,0.012,0.62),M.black,false);w.position.copy(h.p).addScaledVector(n,0.02);w.rotation.set(0,0,Math.atan2(n.x,n.y));w.rotation.x=-0.28;
+     const arm=add(new THREE.BoxGeometry(0.03,0.015,0.5),M.black,false);arm.position.copy(w.position).addScaledVector(n,0.012);arm.rotation.copy(w.rotation);});}
   /* side livery + windows: one canvas per side (text reads correctly on both) */
   const LEN=5.4,HGT=2.0,TW=2048,TH=768;
   const livery=(sd)=>canvasTex(TW,TH,(g,w,h)=>{g.clearRect(0,0,w,h);const X=x=>(sd>0?(x+2.7):(2.7-x))/LEN*w,Y=y=>(HGT-y)/HGT*h,sx=w/LEN,sy=h/HGT;
