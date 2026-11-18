@@ -1104,6 +1104,7 @@ const VB=['hips','spine','chest','neck','head','leftUpperArm','leftLowerArm','le
 /* keyframes: throw [t, rDown,rSwing,rFlex, twist,lean, lDown,lSwing,lFlex, legL,legR]; jump/land [t, thigh,knee,foot, armSwing, spine, drop] */
 const TW_K=[[0,1.3,0.02,0.18,0,0.05,1.3,0.02,0.18,0,0],[0.6,1.5,-3.3,2.1,-0.45,0.0,1.5,-1.25,0.6,-0.38,0.32]];
 const TH_K=[[0,1.5,-3.3,2.1,-0.45,0.0,1.5,-1.25,0.6,-0.38,0.32],[0.06,1.5,-2.9,1.5,-0.2,0.08,1.45,-0.9,0.8,-0.38,0.3],[0.13,1.5,-1.9,0.25,0.25,0.25,1.35,-0.3,1.2,-0.4,0.25],[0.45,1.45,-0.55,0.45,0.45,0.32,1.3,0.1,0.9,-0.35,0.1],[1.0,1.35,-0.25,0.3,0.15,0.12,1.3,0,0.3,-0.15,0.05]];
+var CARRY=[1.25,-0.5,1.85,0,0.6];window.__setCarry=a=>{CARRY=a;};
 const JR_K=[-1.0,1.6,-0.6,0.9,0.45,0.12];
 const JP_K=[[0,-1.0,1.6,-0.6,0.9,0.45,0.12],[0.1,-0.15,0.15,0.4,-2.4,0.05,0],[0.3,-0.9,1.3,0.2,-1.9,0.2,0],[0.6,-0.6,0.8,0.1,-1.6,0.15,0]];
 const LD_K=[[0,-0.9,1.3,0.2,-1.9,0.2,0],[0.15,-1.55,2.25,-0.6,-1.3,0.5,0.22],[0.6,-1.45,2.1,-0.55,-0.9,0.4,0.2]];
@@ -1148,10 +1149,10 @@ function makeVRMChar(vrm,height=1.42,opts={}){
   c.update=dt=>{c.t+=dt;const t=c.t,P=c.pose;const T={};let bob=0;
     const sadM=c.mood==='sad'||c.mood==='hurt';if(c._pP!==P){c._pP=P;c._p0=t;}const pt=t-c._p0;let drop=0;
     arm(T,1,1.3,0.02,0.18);arm(T,-1,1.3,0.02,0.18);leg(T,1,0);leg(T,-1,0);T.spine=[0,0,0];T.chest=[Math.sin(t*2.2)*0.015,0,0];T.head=[sadM?0.25:0,0,0];T.neck=[sadM?0.1:0,0,0];
-    if(P==='walk'||P==='run'){const run=P==='run'&&!opts.noRun;c.phase+=dt*(c.gaitV!=null?PI*c.gaitV/((run?0.95:0.55)*(c.hgt||1.3)/1.3):(run?12.5:(P==='run'?11:8)))*(c.animSpeed||1);const ph=c.phase,s=Math.sin(ph),co=Math.cos(ph);
-      const a=(run?0.85:0.48)*(opts.stride||1);leg(T,1,-a*s,(run?0.25:0.08)+(run?1.25:0.55)*Math.max(0,co),run?0.2:0.05);leg(T,-1,a*s,(run?0.25:0.08)+(run?1.25:0.55)*Math.max(0,-co),run?0.2:0.05);
+    if(P==='walk'||P==='run'||P==='walkBack'){const back=P==='walkBack',run=P==='run'&&!opts.noRun;c.phase+=(back?-1:1)*dt*(c.gaitV!=null?PI*c.gaitV/((run?0.95:back?0.34:0.55)*(c.hgt||1.3)/1.3):(run?12.5:(P==='run'?11:8)))*(c.animSpeed||1);const ph=c.phase,s=Math.sin(ph),co=Math.cos(ph);
+      const a=(run?0.85:0.48)*(opts.stride||1)*(back?0.6:1);leg(T,1,-a*s,(run?0.25:0.08)+(run?1.25:0.55)*Math.max(0,co),run?0.2:0.05);leg(T,-1,a*s,(run?0.25:0.08)+(run?1.25:0.55)*Math.max(0,-co),run?0.2:0.05);
       const af=run?0.95:0.7;arm(T,1,run?1.18:1.27,a*s*af,run?1.25:0.3);arm(T,-1,run?1.18:1.27,-a*s*af,run?1.25:0.3);
-      T.spine=[run?0.22:0.04,0,0];T.chest=[0,-s*(run?0.12:0.06),0];bob=Math.abs(co)*(run?0.05:0.02);
+      T.spine=[run?0.22:0.04,0,0];T.chest=[0,-s*(run?0.12:0.06),0];if(back){arm(T,1,1.08,a*s*0.4,0.55,0,0.25);arm(T,-1,1.08,-a*s*0.4,0.55,0,0.25);T.spine=[0.2,0.12,0];T.chest=[0.06,0.22,0];T.neck=[0.05,0.3,0];T.head=[0.12,0.45,0];}bob=Math.abs(co)*(run?0.05:0.02);
       if(c.walkStep!==undefined){const st=Math.sign(s);if(st!==c.walkStep){c.walkStep=st;}}}
     else if(P==='sit'||P==='hurtSit'||P==='hurtLeg'||P==='hurtMouth'){leg(T,1,-1.5,0.08,-0.3,0.12);leg(T,-1,-1.5,0.08,-0.3,0.12);
       arm(T,1,1.3,0.55,0.12);arm(T,-1,1.3,0.55,0.12);T.spine=[-0.05,0,0];
@@ -1181,6 +1182,7 @@ function makeVRMChar(vrm,height=1.42,opts={}){
     else if(P==='climb'){const a=c.climbK!=null?Math.cos(c.climbK*PI):Math.sin(t*3.2),u=Math.max(0,a),v=Math.max(0,-a);arm(T,1,1.45,-2.35-0.45*u,0.35+0.5*v);arm(T,-1,1.45,-2.35-0.45*v,0.35+0.5*u);leg(T,1,-0.25-0.8*v,0.3+1.1*v,0.3);leg(T,-1,-0.25-0.8*u,0.3+1.1*u,0.3);T.spine=[0.1,0,0];T.neck=[-0.25,0,0];T.head=[-0.3,0,0];}
     else if(P==='jump'){leg(T,1,-1.05,1.45,0.35);leg(T,-1,-0.8,1.2,0.35);arm(T,1,1.45,-2.2,0.35);arm(T,-1,1.45,-2.2,0.35);T.spine=[0.2,0,0];}
     else if(P==='point'){arm(T,-1,1.55,-1.45,0.05);}
+    if(c.carry&&!['trip','lie','hurtSit','jump','brace'].includes(P)){arm(T,1,CARRY[0],CARRY[1],CARRY[2],CARRY[3],CARRY[4]);arm(T,-1,CARRY[0],CARRY[1],CARRY[2],CARRY[3],CARRY[4]);T.chest=[0.04,0,0];}
     if(c.mood==='joy'&&P==='idle')bob+=Math.abs(Math.sin(t*6))*0.05;
     if(c.baseY0===undefined)c.baseY0=vrm.scene.position.y;c._drop=lerp(c._drop||0,drop*(c.hgt||1.3),c.snap?1:1-Math.exp(-dt*10));vrm.scene.position.y=c.baseY0-c._drop;
     const k=c.snap?1:1-Math.exp(-dt*14);
@@ -1352,7 +1354,7 @@ function buildCampus(){
    const p=new THREE.Mesh(box(3.2,1.4,0.15),toon('#ffffff',{decal:true,map:textTex('友善校園\n從尊重與安全開始',{w:512,h:224,bg:'#fffaf0',fg:'#2b4a8a',size:64,border:'#2f6a5a'})}));p.position.y=1.9;s.add(p);
    [-1.4,1.4].forEach(x=>{const l=new THREE.Mesh(cyl(0.06,0.06,1.3,8),mats.metal);l.position.set(x,0.65,0);s.add(l);});obs.push({x:-9,z:27.5,r:1.6});}
   /* a few basketballs lying around */
-  [[-13,9],[3,-7],[17.5,5]].forEach(([x,z])=>B.put('horange',sph(0.12,12,10),M4(x,0.12,z)));
+  [[-13,9],[3,-7],[17.5,5]].forEach(([x,z])=>{const b=ball(sc,0.12);b.position.set(x,0.12,z);});
   B.build(sc,mats);
   CAMPUS.obs=obs;CAMPUS.sun=sun;CAMPUS.portal={x:0,z:-60,r:0.1};
   return markEnv(sc);}
@@ -1971,7 +1973,7 @@ const DIR={
   stage:{
     insert:[S=>({shot:()=>aim(_c3.set(3.2,1.2,-3.6),_c1.set(0,0.6,-7.4),46),tag:'一公尺高的司令台'}),S=>({shot:SH.body(S.mei,{f:1.6,r:-1.0,y:0.95,ly:0.35,fov:38}),tag:'下面有人在綁鞋帶'})],
     run:S=>[{slot:'A',shot:()=>aim(_c3.set(11.5,1.6,-5.2),_c1.set(9.0,0.9,-8.75),44),fx:'speed',tag:'跑上司令台',sfx:'噠噠'},{slot:'B',shot:SH.body(S.me,{f:2.6,r:0.9,y:1.0,ly:0.85,fov:44}),fx:'speed',tag:'一步跨上樓梯'}],
-    approach:(S,v)=>v==='run'?({pose:'run',stage:null,ps:[{slot:'A',shot:()=>aim(_c3.set(3.6,1.6,-8.6),_c1.set(0,1.4,-8.8),46),fx:'speed',tag:'往後退，再助跑',sfx:'噠噠噠'},{slot:'B',shot:()=>aim(_c3.set(0.9,1.25,-6.9),_c1.set(0,1.06,-7.58),36),tag:'凸起的台緣'}],burst:{t:'衝！',icon:'🏃'}})
+    approach:(S,v)=>v==='run'?({pose:'walkBack',stage:null,ps:[{slot:'A',shot:()=>aim(_c3.set(3.6,1.6,-8.6),_c1.set(0,1.4,-8.8),46),fx:'speed',tag:'往後退，再助跑',sfx:'噠噠噠'},{slot:'B',shot:()=>aim(_c3.set(0.9,1.25,-6.9),_c1.set(0,1.06,-7.58),36),tag:'凸起的台緣'}],burst:{t:'衝！',icon:'🏃'}})
       :({pose:'jumpReady',stage:null,ps:[{slot:'A',shot:()=>aim(_c3.set(3.4,1.4,-5.2),_c1.set(0,1.6,-7.6),46),fx:'speed',tag:'從司令台往下跳',sfx:'咻——'},{slot:'B',shot:SH.body(S.mei,{f:2.0,r:-0.8,y:1.1,ly:0.6,fov:34}),tag:'下面的同學'}],burst:{t:'跳！',icon:'🦘'}}),
     impact:S=>S.v==='run'?({ps:[{slot:'A',shot:()=>{const h=bonePos(S.me,'rightHand',_c1);aim(_c3.set(h.x+0.75,h.y+0.35,h.z+0.55),h,36);},fx:'impact',tag:'右手先撐地'},{slot:'B',shot:()=>{const h=bonePos(S.me,'head',_c1);aim(_c3.set(h.x-0.7,h.y+0.3,h.z+0.6),h,36);},fx:'impact',tag:'頭撞到地面'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]})
       :({ps:[{slot:'A',shot:()=>aim(_c3.set(2.8,1.2,-4.6),_c1.set(0,1.0,-6.8),44),fx:'impact',tag:'壓到同學'},{slot:'B',shot:SH.fixed([-1.0,0.9,-4.6],S.mei,null,{ly:0.45,fov:40}),fx:'impact',tag:'小美'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]}),
@@ -2004,7 +2006,17 @@ const T2={
 const gplane=(w,d,tex,y=0,rep=1)=>{const g=new THREE.PlaneGeometry(w,d);if(rep!==1){const u=g.attributes.uv;for(let i=0;i<u.count;i++)u.setXY(i,u.getX(i)*rep,u.getY(i)*rep);}
   const m=new THREE.Mesh(g,toon('#ffffff',{map:tex}));m.rotation.x=-PI/2;m.position.y=y;m.receiveShadow=true;return m;};
 const win=(B,x,y,z,ry,w=1.1,h=1.2)=>{B.put('glass',uvBox(w,h,0.1),M4(x,y,z,ry));B.put('white',uvBox(w+0.14,0.08,0.14),M4(x,y-h/2-0.04,z,ry));};
-function ball(sc,r=0.12,col='#e8822c'){const m=new THREE.Mesh(new THREE.SphereGeometry(r,16,12),toon(col));m.castShadow=true;sc.add(m);return m;}
+/* basketball: pebbled orange leather + black channels (equirect: equator, one meridian circle, two curved side seams) */
+var _bbTex=null;
+function bballTex(){if(_bbTex)return _bbTex;_bbTex=canvasTex(1024,512,(g,w,h)=>{g.fillStyle='#d9692a';g.fillRect(0,0,w,h);
+    const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'rgba(0,0,0,.10)');gr.addColorStop(.5,'rgba(255,170,90,.08)');gr.addColorStop(1,'rgba(0,0,0,.10)');g.fillStyle=gr;g.fillRect(0,0,w,h);
+    for(let i=0;i<26000;i++){const x=Math.random()*w,y=Math.random()*h,r=1+Math.random()*1.4;g.fillStyle=Math.random()<.55?'rgba(120,45,10,.28)':'rgba(255,190,130,.22)';g.beginPath();g.arc(x,y,r,0,7);g.fill();}
+    g.strokeStyle='#1d1410';g.lineWidth=9;g.lineCap='round';
+    g.beginPath();g.moveTo(0,h/2);g.lineTo(w,h/2);g.stroke();
+    [0.25,0.75].forEach(u=>{g.beginPath();g.moveTo(u*w,0);g.lineTo(u*w,h);g.stroke();});
+    [0,0.5].forEach(u0=>{[-1,1].forEach(sd=>{g.beginPath();for(let k=0;k<=64;k++){const v=k/64,lat=(v-0.5)*Math.PI;const du=sd*(0.25-0.17*Math.cos(lat));const x=((u0+0.25+du)%1+1)%1;if(k===0)g.moveTo(x*w,v*h);else g.lineTo(x*w,v*h);}g.stroke();});});
+  },[1,1],true);_bbTex.colorSpace=THREE.SRGBColorSpace;return _bbTex;}
+function ball(sc,r=0.12){const m=new THREE.Mesh(new THREE.SphereGeometry(r,32,20),new THREE.MeshStandardMaterial({map:bballTex(),roughness:0.75}));m.castShadow=true;m.rotation.set(0.4,0.6,0.2);sc.add(m);return m;}
 
 /* ---- 1. 籃球場 + 輔導室走廊 ---- */
 function buildCourt(){
@@ -2516,6 +2528,7 @@ function ambScene(){if(AMBU)return AMBU;
     close(){const p=car.position;aim(_c3.set(p.x+6.0,1.7,p.z+4.2),_c1.set(p.x+0.6,1.4,p.z),30);}};
   return AMBU;}
 
+var BALL_FWD=0.1,BALL_UP=0.0;window.__setBall=(f,u)=>{BALL_FWD=f;BALL_UP=u;};
 /* ================= EPISODE 2 · CASES ================= */
 const CASES={};
 const _tp=new V3();
@@ -2530,7 +2543,8 @@ CASES.court={id:'court',cmDanger:{pose:'fist',t:'危險！',icon:'⚠️',tag:'�
     S.yu=npc(sc,'xiaoyu',[3.6,0,-4.6],PI/2);S.kai=npc(sc,'xiaokai',[-1.0,0,0.8],-PI/2);S.tea=npc(sc,'teacher',[-5.2,0,2.6],-PI/2);S.me=meChar(sc,[0.2,0,1.4],0);
     S.yu.setMood('');S.me.root.visible=false;S.actors=[S.yu,S.kai,S.tea,S.me];S.victim=S.yu;S.floor=(x,z)=>(x>7.65&&x<11.35&&z>-24&&z<2)?0.015:0;
     Object.assign(CHAR,{xiaoyu:S.yu,xiaokai:S.kai,teacher:S.tea,me:S.me});
-    S.ball=ball(sc,0.12);S.tick=dt=>{if(S.ball.visible)bonePos(S.yu,'rightHand',_tp);S.ball.position.copy(_tp).add(new V3(0,-0.1,0));};
+    S.ball=ball(sc,0.12);S.yu.carry=true;const _lh=new V3(),_fw=new V3();
+    S.tick=dt=>{if(!S.ball.visible||!S.yu.carry)return;S.yu.root.updateMatrixWorld(true);bonePos(S.yu,'rightHand',_tp);bonePos(S.yu,'leftHand',_lh);const y=S.yu.root.rotation.y;_fw.set(Math.sin(y),0,Math.cos(y));S.ball.position.copy(_tp).add(_lh).multiplyScalar(0.5).addScaledVector(_fw,BALL_FWD).y+=BALL_UP;S.ball.rotation.y=y;};
     S.start=()=>{camCut(new V3(0.2,1.34,1.4),new V3(3.6,1.2,-4.6),true);S.kai.pose='idle';faceTo(S.kai,0.2,1.4);S.ball.visible=true;};
     S.cleanup=()=>S.actors.forEach(c=>LIVE.delete(c));return S;},
   intro:[['nar','下課了，你和小凱在籃球場邊玩球。'],['xiaokai','哎呀，我踢太用力，球飛到小宇那邊去了！'],
@@ -2544,7 +2558,7 @@ CASES.court={id:'court',cmDanger:{pose:'fist',t:'危險！',icon:'⚠️',tag:'�
   keyIdx:0,
   async tragedy(S,v){const yu=S.yu;
     await par(moveFP(new V3(8.9,1.32,-12.36),0.5,'walk',new V3(8.9,0.1,-13.0)),wait(0.1));
-    SFX.thud();yu.pose='trip';yu.setMood('hurt');S.ball.visible=false;const q=yu.root.position.clone();S.dropBall=1;
+    SFX.thud();yu.pose='trip';yu.setMood('hurt');yu.carry=false;S.ball.visible=false;const q=yu.root.position.clone();S.dropBall=1;
     impact();FX.devilOut();
     await par(tween(0.55,k=>{yu.root.position.set(q.x-0.6*k,0,q.z-0.5*k);yu.root.rotation.set(0.9*easeI(k),PI,-0.85*easeI(k));}),
       tween(0.7,k=>{rig.pos.y=lerp(1.34,0.7,easeO(k));rig.roll=-0.35*easeO(k);rig.look.set(8.0,lerp(0.2,0.1,k),-13.7);}));
@@ -2556,13 +2570,13 @@ CASES.court={id:'court',cmDanger:{pose:'fist',t:'危險！',icon:'⚠️',tag:'�
   afterShort:[['xiaoyu','好痛……我的頭，還有肩膀……好痛……'],['teacher','小宇，先不要動！老師馬上叫救護車，也通知你們的家長。'],()=>cmAmb(),['nar','救護車很快就到了，把小宇送到醫院。'],()=>cmHide()],
   regret:[['me','我只是想把球拿回來……我沒有想要他受傷……'],()=>FX.devilIn(),['devil','是他拿走你的球，是他先不對，不關你的事。']],
   angel:[['angel','就算對方先不對，也不能用追趕、貼近的方式討回來。生氣的時候，更要冷靜。'],['angel','我讓時間倒轉，回到你剛剛握緊拳頭的時候。這一次，請你自己做出正確的選擇！']],
-  keyLines:[()=>{S.ball.visible=true;},['nar','小宇抱著球走了，你握緊了拳頭，心跳好快。'],['angel','這一次，你可以自己選。生氣的時候，想一想最先要做的事。']],
+  keyLines:[()=>{S.ball.visible=true;S.yu.carry=true;},['nar','小宇抱著球走了，你握緊了拳頭，心跳好快。'],['angel','這一次，你可以自己選。生氣的時候，想一想最先要做的事。']],
   key:{q:'球被拿走了，你很生氣，要怎麼做？',opts:[
     {t:'停下來，慢慢深呼吸三秒，再去找王老師幫忙',ok:true},
     {t:'追上去，只是想請他把球還我',v:'follow',after:'你一路追在他後面，越追越近，小宇緊張地加快了腳步。',why:'生氣的時候追著別人，對方會緊張、加快腳步，貼太近就可能踩到他的鞋跟而摔倒。'},
     {t:'邊走邊大聲罵他，讓大家都知道他不對',v:'shout',after:'你邊走邊罵，小宇回頭看你，腳步慌亂，你一步跟上，踩到他的鞋跟。',why:'大聲罵人會讓對方回頭、腳步慌亂，更容易出意外。'},
     {t:'走到他旁邊，一路用手指戳他，要他還球',v:'poke',after:'你走在他身後一直戳他，他閃躲時被你踩到鞋跟，整個人往旁邊倒下。',why:'碰觸、推戳別人本來就不行，閃躲的人更容易失去平衡。'}]},
-  async safe(S){const yu=S.yu;S.ball.visible=true;
+  async safe(S){const yu=S.yu;S.ball.visible=true;yu.carry=true;
     await par(tween(0.1,()=>{}),(async()=>{S.me.pose='breathe';})());
     await tween(2.4,k=>{rig.look.set(lerp(rig.look.x,3.0,k*0.1),lerp(rig.look.y,1.3,k*0.1),lerp(rig.look.z,-6.0,k*0.1));rig.pos.y=1.34+Math.sin(k*PI*2)*0.02;});
     walkTo(yu,new V3(9.2,0,-16.5),4,'walk');await par(walkTo(S.tea,new V3(0.6,0,-2.2),1.0,'walk'),moveFP(new V3(0.4,1.34,0.4),1.8,'walk',new V3(0.6,1.3,-2.4)));},
@@ -2666,7 +2680,7 @@ CASES.stage={id:'stage',cmDanger:{pose:'jumpReady',t:'跳！',icon:'🦘',tag:'�
     S.unwear=()=>{S.gear.forEach(m=>m.parent&&m.parent.remove(m));S.gear.length=0;};
     /* self-fall: back up, run, toe catches the edge strip, pitch forward, right hand hits first, then the head */
     S.selfFall=async()=>{const me=S.me,m=S.mei;S.jog=false;
-      await moveFP(new V3(0,2.3,-10.4),1.3,'',new V3(0,1.6,-4),easeIO);
+      me.gaitV=1.1;me.pose='walkBack';rig.bob=0.02;rig.bobF=2*PI*1.1/0.33;await moveFP(new V3(0,2.3,-10.4),2.5,'',new V3(0,1.6,-4));rig.bob=0;me.pose='idle';me.gaitV=null;await wait(0.35);
       await moveFP(new V3(0,2.3,-7.66),0.85,'run',new V3(0,1.1,-4));
       GAME.jumpAt=1;SFX.step&&SFX.step(true);rig.shake=0.15;
       await tween(0.12,k=>{rig.look.set(0,lerp(1.1,-0.4,k),-5.0);rig.pos.z=lerp(-7.62,-7.45,k);});
