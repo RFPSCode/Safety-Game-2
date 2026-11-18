@@ -1021,7 +1021,7 @@ const TRACKS={
 };
 /* ---- orchestral score: pre-rendered seamless loops (music/<cue>.mp3), the Web-Audio synth stays as fallback ----
    Each file holds one steady-state repeat plus PAD seconds either side, so any window of exactly LOOP seconds loops without a seam. */
-const MUSF={"campus":{"loop":38.4,"pad":0.5},"daily":{"loop":32.0,"pad":0.5},"devil":{"loop":40.0,"pad":0.5},"tragedy":{"loop":48.0,"pad":0.5},"angel":{"loop":38.4,"pad":0.5},"think":{"loop":38.4,"pad":0.5},"victory":{"loop":30.0,"pad":0.5},"over":{"loop":32.0,"pad":0.5}},MUSV='2',MUSF_GAIN=1.15,MUSB={},MUSRAW={},MUSQ={};let MUSLRU=[];
+const MUSF={"campus":{"loop":38.4,"pad":0.5},"daily":{"loop":32.0,"pad":0.5},"devil":{"loop":40.0,"pad":0.5},"tragedy":{"loop":57.6,"pad":0.5},"angel":{"loop":38.4,"pad":0.5},"think":{"loop":38.4,"pad":0.5},"victory":{"loop":30.0,"pad":0.5},"over":{"loop":32.0,"pad":0.5}},MUSV='3',MUSF_GAIN=1.15,MUSB={},MUSRAW={},MUSQ={};let MUSLRU=[];
 const MUSNEXT={campus:['daily'],daily:['devil','victory'],devil:['tragedy','think'],tragedy:['angel'],angel:['think'],think:['daily','victory','over'],victory:['campus'],over:['campus']};
 function musFetch(){if(musFetch.on)return;musFetch.on=1;const order=['campus','daily','devil','tragedy','angel','think','victory','over'];
   order.forEach((n,i)=>setTimeout(()=>{fetch('music/'+n+'.mp3?v='+MUSV).then(r=>r.ok?r.arrayBuffer():null).then(ab=>{if(!ab)return;MUSRAW[n]=ab;
