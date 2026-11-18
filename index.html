@@ -1121,7 +1121,7 @@ function makeVRMChar(vrm,height=1.42,opts={}){
   c.root.rotation.order='YXZ';const body=new THREE.Group();c.root.add(body);c.body=body;body.add(vrm.scene);
   vrm.scene.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(vrm.scene);const sc=height/(bb.max.y-bb.min.y);c.sc=sc;c.hgt=height;vrm.scene.scale.setScalar(sc);vrm.scene.position.y=-bb.min.y*sc;
   vrm.scene.updateMatrixWorld(true);
-  const H=vrm.humanoid;c.B={};VB.forEach(n=>{const b=H.getNormalizedBoneNode(n);if(b)c.B[n]=b;});{vrm.scene.updateMatrixWorld(true);const g=n=>{const v=new V3();c.B[n].getWorldPosition(v);return v;};const hp=g('leftUpperLeg'),kn=g('leftLowerLeg'),an=g('leftFoot');c.legR={hip:hp.y,L1:hp.distanceTo(kn),L2:kn.distanceTo(an),ank:an.y,az:an.z-hp.z,toe:0.105*height};}
+  const H=vrm.humanoid;c.B={};VB.forEach(n=>{const b=H.getNormalizedBoneNode(n);if(b)c.B[n]=b;});{vrm.scene.updateMatrixWorld(true);const g=n=>{const v=new V3();c.B[n].getWorldPosition(v);return v;};const hp=g('leftUpperLeg'),kn=g('leftLowerLeg'),an=g('leftFoot');c.legR={hip:hp.y,L1:hp.distanceTo(kn),L2:kn.distanceTo(an),ank:an.y,az:an.z-hp.z,toe:0.105*height};const ua=g('leftUpperArm'),la=g('leftLowerArm'),ha=g('leftHand');c.armR={L1:ua.distanceTo(la),L2:la.distanceTo(ha)};{const ch=g('chest');c.chestY=ch.y;c.chestZ=ch.z;}c.palmOff={};['left','right'].forEach(sd=>{const h=g(sd+'Hand'),m=H.getNormalizedBoneNode(sd+'MiddleProximal');const v=new V3();if(m){m.getWorldPosition(v);c.palmOff[sd]=v.sub(h).multiplyScalar(0.6);}else c.palmOff[sd]=new V3(sd==='left'?0.05:-0.05,0,0);});}
   const wp=n=>{const v=new V3();c.B[n].getWorldPosition(v);return v.y;};
   c.hipsY=wp('hips');c.headY=wp('head')+0.12;
   if(vrm.lookAt){vrm.lookAt.target=camera;vrm.lookAt.autoUpdate=true;}
@@ -1182,12 +1182,14 @@ function makeVRMChar(vrm,height=1.42,opts={}){
     else if(P==='climb'){const a=c.climbK!=null?Math.cos(c.climbK*PI):Math.sin(t*3.2),u=Math.max(0,a),v=Math.max(0,-a);arm(T,1,1.45,-2.35-0.45*u,0.35+0.5*v);arm(T,-1,1.45,-2.35-0.45*v,0.35+0.5*u);leg(T,1,-0.25-0.8*v,0.3+1.1*v,0.3);leg(T,-1,-0.25-0.8*u,0.3+1.1*u,0.3);T.spine=[0.1,0,0];T.neck=[-0.25,0,0];T.head=[-0.3,0,0];}
     else if(P==='jump'){leg(T,1,-1.05,1.45,0.35);leg(T,-1,-0.8,1.2,0.35);arm(T,1,1.45,-2.2,0.35);arm(T,-1,1.45,-2.2,0.35);T.spine=[0.2,0,0];}
     else if(P==='point'){arm(T,-1,1.55,-1.45,0.05);}
+    else if(P==='bendPick'){const b=c.bend??1;leg(T,1,-1.95*b,2.45*b,-0.5*b,0.22*b);leg(T,-1,-1.9*b,2.4*b,-0.5*b,0.22*b);T.spine=[0.95*b,0,0];T.chest=[0.4*b,0,0];T.neck=[-0.2*b,0,0];T.head=[-0.25*b,0,0];}
     else if(P==='stairs'&&c.sg){const g=c.sg,R=c.legR;for(const sd of [1,-1]){const F=g.feet[sd];const dz=F.f-g.pf-R.az,dy=F.h+R.ank+R.toe*0.6*Math.sin(Math.max(0,F.p))-g.ph;let L=Math.hypot(dz,dy);L=Math.min(Math.max(L,Math.abs(R.L1-R.L2)+0.01),(R.L1+R.L2)*0.999);const ph=Math.atan2(dz,-dy),be=Math.acos(Math.min(1,Math.max(-1,(R.L1*R.L1+L*L-R.L2*R.L2)/(2*R.L1*L))));const a1=ph+be,kz=R.L1*Math.sin(a1),ky=-R.L1*Math.cos(a1),a2=Math.atan2(dz-kz,-(dy-ky));leg(T,sd,-a1,a1-a2,a2+F.p,0.03);}const am=(g.up?(g.fast?0.55:0.38):0.22)*g.tp,cs=Math.cos(PI*g.u)*am;arm(T,1,g.up?1.25:1.12,cs,g.fast?1.25:0.4);arm(T,-1,g.up?1.25:1.12,-cs,g.fast?1.25:0.4);T.spine=[g.up?(g.fast?0.34:0.17):0.03,0,0];T.chest=[g.up?0.04:0,-cs*0.12,0];T.neck=[g.up?0:0.12,0,0];T.head=[g.up?0.02:0.26,0,0];}
     if(c.carry&&!['trip','lie','hurtSit','jump','brace'].includes(P)){arm(T,1,CARRY[0],CARRY[1],CARRY[2],CARRY[3],CARRY[4]);arm(T,-1,CARRY[0],CARRY[1],CARRY[2],CARRY[3],CARRY[4]);T.chest=[0.04,0,0];}
-    if(c.mood==='joy'&&P==='idle')bob+=Math.abs(Math.sin(t*6))*0.05;
+    if(c.mood==='joy'&&P==='idle'&&!c.grip)bob+=Math.abs(Math.sin(t*6))*0.05;
     if(c.baseY0===undefined)c.baseY0=vrm.scene.position.y;c._drop=lerp(c._drop||0,drop*(c.hgt||1.3),c.snap?1:1-Math.exp(-dt*10));vrm.scene.position.y=c.baseY0-c._drop;
     const k=(c.snap||P==='stairs')?1:1-Math.exp(-dt*14);
     for(const n in c.B){if(n==='hips')continue;const e=T[n]||[0,0,0];E.set(e[0],e[1],e[2],'XYZ');Q.setFromEuler(E);if(e[3])Q.multiply(Q2.setFromAxisAngle(XA,e[3]));if(c.snap)c.B[n].quaternion.copy(Q);else c.B[n].quaternion.slerp(Q,k);}
+    if(c.grip&&c.grip.w>0.001&&c.gripBall)armIK(c);
     c.tears.forEach((tr,i)=>{tr.visible=c.mood==='hurt';if(tr.visible){const ph=(t*0.9+i*0.5)%1;tr.position.y=eye-0.012-ph*0.06;tr.scale.setScalar(1-ph*0.4);}});
     const em=vrm.expressionManager;if(em){const w={happy:0,sad:0,angry:0,surprised:0,relaxed:0,aa:0,ih:0,ou:0,ee:0,oh:0,blink:0};
       if(c.mood==='joy')w.happy=1;else if(c.mood==='sad')w.sad=0.85;else if(c.mood==='hurt'){w.sad=1;w.aa=0.45+Math.sin(t*12)*0.15;}else if(c.mood==='surprised')w.surprised=0.9;
@@ -2552,6 +2554,34 @@ async function stairWalk(S,o,dur){const me=S.me;me.pose='stairs';me.gaitV=null;c
     const kk=Math.floor(u+0.1);if(kk!==lk){lk=kk;SFX.step&&SFX.step(!!o.fast);}});
   S.stairRoot=null;me.sg=null;me.pose='idle';}
 
+/* ---- two-hand ball grip: arm IK so both palms rest exactly on the ball surface ---- */
+const _ik={E:new V3(),Wt:new V3(),a:new V3(),b:new V3(),c:new V3(),d:new V3(),e:new V3(),f:new V3(),n:new V3(),w:new V3(),p:new V3(),up:new V3(0,1,0),fw:new V3(),lat:new V3(),
+  q:new THREE.Quaternion(),qp:new THREE.Quaternion(),qr:new THREE.Quaternion(),m0:new THREE.Matrix4(),m1:new THREE.Matrix4(),fk:{}};
+function gripDirs(c,s,mode,out,fdir,gu){const I=_ik,y=c.root.rotation.y;I.fw.set(Math.sin(y),0,Math.cos(y));I.lat.set(Math.cos(y),0,-Math.sin(y));
+  if(mode==='under'){out.copy(I.lat).multiplyScalar(0.55*s).addScaledVector(I.up,-0.7).addScaledVector(I.fw,-0.38).normalize();fdir.copy(I.fw);}
+  else{out.copy(I.lat).multiplyScalar(s).addScaledVector(I.fw,-0.22).addScaledVector(I.up,gu??-0.08).normalize();fdir.copy(I.fw).multiplyScalar(0.75).addScaledVector(I.up,0.65);}
+  fdir.addScaledVector(out,-fdir.dot(out)).normalize();}
+function aimBone(b,child,dirW){const I=_ik;b.parent.getWorldQuaternion(I.qp).invert();I.d.copy(dirW).applyQuaternion(I.qp).normalize();I.e.copy(child.position).normalize();b.quaternion.setFromUnitVectors(I.e,I.d);b.updateMatrixWorld(true);}
+function armIK(c){const I=_ik,g=c.grip,G=c.gripBall,H=c.vrm.humanoid;c.root.updateMatrixWorld(true);c.vrm.scene.getWorldQuaternion(I.qr);
+  const ctr=G.p,r=G.r+0.025;c.gripErr=0;
+  for(const s of [1,-1]){const sd=s>0?'left':'right',U=c.B[sd+'UpperArm'],L=c.B[sd+'LowerArm'],Hd=c.B[sd+'Hand'];
+    const fk=I.fk[sd]||(I.fk[sd]=[new THREE.Quaternion(),new THREE.Quaternion(),new THREE.Quaternion()]);fk[0].copy(U.quaternion);fk[1].copy(L.quaternion);fk[2].copy(Hd.quaternion);
+    gripDirs(c,s,g.mode||'side',I.n,I.f,g.up);/* I.n = outward contact normal, I.f = finger direction */
+    const P=I.p.copy(ctr).addScaledVector(I.n,r);
+    /* hand world rotation: rest basis (finger, palm-normal) -> desired (finger, -outward) */
+    const f0=I.a.set(s,0,0).applyQuaternion(I.qr),n0=I.b.set(0,-1,0).applyQuaternion(I.qr),t0=I.c.crossVectors(f0,n0);I.m0.makeBasis(f0,n0,t0);
+    const nn=I.d.copy(I.n).negate(),t1=I.e.crossVectors(I.f,nn);I.m1.makeBasis(I.f,nn,t1);I.m1.multiply(I.m0.transpose());const Rw=I.q.setFromRotationMatrix(I.m1);
+    const W=I.w.copy(c.palmOff[sd]).applyQuaternion(I.qr).applyQuaternion(Rw).negate().add(P);
+    const Sp=U.getWorldPosition(I.a),L1=c.armR.L1,L2=c.armR.L2;const dv=I.b.subVectors(W,Sp);let D=dv.length();const Dm=(L1+L2)*0.999;if(D>Dm){c.gripErr=Math.max(c.gripErr,D-Dm);D=Dm;}D=Math.max(D,Math.abs(L1-L2)+0.01);dv.normalize();
+    const pole=I.c.copy(I.lat).multiplyScalar(s*(g.mode==='under'?0.15:0.3)).addScaledVector(I.up,-0.35).addScaledVector(I.fw,-0.12);pole.addScaledVector(dv,-pole.dot(dv)).normalize();
+    const a=(L1*L1-L2*L2+D*D)/(2*D),h=Math.sqrt(Math.max(0,L1*L1-a*a));const E=I.E.copy(Sp).addScaledVector(dv,a).addScaledVector(pole,h);
+    aimBone(U,L,I.d.subVectors(E,Sp));const Wt=I.Wt.copy(Sp).addScaledVector(dv,D);aimBone(L,Hd,I.d.subVectors(Wt,E));
+    Hd.parent.getWorldQuaternion(I.qp).invert();Hd.quaternion.copy(I.qp).multiply(Rw.multiply(I.qr));
+    const w=g.w;if(w<1){U.quaternion.slerpQuaternions(fk[0],U.quaternion.clone(),w);L.quaternion.slerpQuaternions(fk[1],L.quaternion.clone(),w);Hd.quaternion.slerpQuaternions(fk[2],Hd.quaternion.clone(),w);}
+    U.updateMatrixWorld(true);(c._ikd||(c._ikd={}))[sd]={P:P.toArray(),W:W.toArray(),E:E.toArray(),Sp:Sp.toArray(),D,L1,L2};}}
+/* where a holder keeps the ball: in front of the stomach */
+function ballAnchor(c,out){const y=c.root.rotation.y,f=(c.chestZ||0)+0.235;const p=c.root.position;return out.set(p.x+Math.sin(y)*f,p.y+(c.body?c.body.position.y:0)+(c.chestY||1)+0.05,p.z+Math.cos(y)*f);}
+
 var BALL_FWD=0.1,BALL_UP=0.0;window.__setBall=(f,u)=>{BALL_FWD=f;BALL_UP=u;};
 /* ================= EPISODE 2 · CASES ================= */
 const CASES={};
@@ -2567,20 +2597,14 @@ CASES.court={id:'court',cmDanger:{pose:'fist',t:'危險！',icon:'⚠️',tag:'�
     S.yu=npc(sc,'xiaoyu',[3.6,0,-4.6],PI/2);S.kai=npc(sc,'xiaokai',[-1.0,0,0.8],-PI/2);S.tea=npc(sc,'teacher',[-5.2,0,2.6],-PI/2);S.me=meChar(sc,[0.2,0,1.4],0);
     S.yu.setMood('');S.me.root.visible=false;S.actors=[S.yu,S.kai,S.tea,S.me];S.victim=S.yu;S.floor=(x,z)=>(x>7.65&&x<11.35&&z>-24&&z<2)?0.015:0;
     Object.assign(CHAR,{xiaoyu:S.yu,xiaokai:S.kai,teacher:S.tea,me:S.me});
-    S.ball=ball(sc,0.12);S.yu.carry=true;const _lh=new V3(),_fw=new V3();
-    /* ball contact: palms = midpoint of hand bone and middle-finger base; put the ball centre where both palms touch its surface
-       (|c-palm| = R), and keep it in front of the chest */
-    const R=0.12+0.012,_pl=new V3(),_pr=new V3(),_q=new V3(),_ch=new V3();
-    const palm=(c,side,out)=>{const H=c.vrm.humanoid,h=H.getNormalizedBoneNode(side+'Hand'),f=H.getNormalizedBoneNode(side+'MiddleProximal');h.getWorldPosition(out);if(f){f.getWorldPosition(_q);out.lerp(_q,0.6);}return out;};
-    S.tick=dt=>{const yu=S.yu;if(!S.ball.visible||!yu.carry||yu.kind!=='vrm')return;yu.root.updateMatrixWorld(true);
-      palm(yu,'right',_pr);palm(yu,'left',_pl);const y=yu.root.rotation.y;_fw.set(Math.sin(y),0,Math.cos(y));
-      const mid=_tp.copy(_pr).add(_pl).multiplyScalar(0.5),half=_pr.distanceTo(_pl)/2;const push=Math.sqrt(Math.max(0,R*R-half*half));
-      mid.addScaledVector(_fw,push);yu.B.chest.getWorldPosition(_ch);const ahead=(mid.x-_ch.x)*_fw.x+(mid.z-_ch.z)*_fw.z,need=R+0.09;if(ahead<need)mid.addScaledVector(_fw,need-ahead);
-      S.ball.position.copy(mid);S.ball.rotation.y=y;S.ballHalf=half;};
-    S.start=()=>{camCut(new V3(0.2,1.34,1.4),new V3(3.6,1.2,-4.6),true);S.kai.pose='idle';faceTo(S.kai,0.2,1.4);S.ball.visible=true;};
+    S.ball=ball(sc,0.12);S.bc=null;
+    /* the ball is moved by S.bc (a holder's anchor, or a scripted path); holders reach it with arm IK */
+    S.tick=dt=>{if(S.bc)S.bc(dt);for(const c of [S.yu,S.kai])if(c.grip)c.gripBall={p:S.ball.position,r:0.12};};
+    S.holdBy=(c,mode='side')=>{c.grip={w:1,mode};S.bc=()=>ballAnchor(c,S.ball.position);};
+    S.start=()=>{camCut(new V3(0.2,1.34,1.4),new V3(3.6,1.2,-4.6),true);S.kai.pose='idle';faceTo(S.kai,0.2,1.4);S.ball.visible=true;S.bc=null;S.yu.grip=null;S.ball.position.set(-0.55,0.12,0.25);};
     S.cleanup=()=>S.actors.forEach(c=>LIVE.delete(c));return S;},
   intro:[['nar','下課了，你和小凱在籃球場邊玩球。'],['xiaokai','哎呀，我踢太用力，球飛到小宇那邊去了！'],
-    async S=>{await walkTo(S.yu,new V3(4.4,0,-4.8),0.8,'walk');},['nar','小宇撿起球，看了你們一眼，抱著球轉身就走。'],
+    async S=>{await courtPick(S);},['nar','小宇撿起球，看了你們一眼，抱著球轉身就走。'],
     S=>{walkTo(S.yu,new V3(6.8,0,-5.4),1.8,'walk',{keep:true});},['teacher','你們好好說，球沒拿回來，也不要生氣吵架喔。'],()=>FX.devilIn(),['devil','他一定是故意的！去追他，把球搶回來！']],
   steps:[
     {lines:[['nar','你握緊了拳頭，胸口悶悶的，越想越生氣。']],q:'你要怎麼辦？',devil:'握緊拳頭，跟上去，叫他把球還你！',good:'先停下來，深呼吸',cm:{pose:'fist',t:'追！',icon:'😠',tag:'怒氣沖沖',sfx:'噠噠',vtag:'抱著球的同學'},
@@ -2590,7 +2614,7 @@ CASES.court={id:'court',cmDanger:{pose:'fist',t:'危險！',icon:'⚠️',tag:'�
   keyIdx:0,
   async tragedy(S,v){const yu=S.yu;
     await par(moveFP(new V3(8.9,1.32,-12.36),0.5,'walk',new V3(8.9,0.1,-13.0)),wait(0.1));
-    SFX.thud();yu.pose='trip';yu.setMood('hurt');yu.carry=false;S.ball.visible=false;const q=yu.root.position.clone();S.dropBall=1;
+    SFX.thud();yu.pose='trip';yu.setMood('hurt');yu.grip=null;S.bc=null;S.ball.visible=false;const q=yu.root.position.clone();S.dropBall=1;
     impact();FX.devilOut();
     await par(tween(0.55,k=>{yu.root.position.set(q.x-0.6*k,0,q.z-0.5*k);yu.root.rotation.set(0.9*easeI(k),PI,-0.85*easeI(k));}),
       tween(0.7,k=>{rig.pos.y=lerp(1.34,0.7,easeO(k));rig.roll=-0.35*easeO(k);rig.look.set(8.0,lerp(0.2,0.1,k),-13.7);}));
@@ -2602,20 +2626,49 @@ CASES.court={id:'court',cmDanger:{pose:'fist',t:'危險！',icon:'⚠️',tag:'�
   afterShort:[['xiaoyu','好痛……我的頭，還有肩膀……好痛……'],['teacher','小宇，先不要動！老師馬上叫救護車，也通知你們的家長。'],()=>cmAmb(),['nar','救護車很快就到了，把小宇送到醫院。'],()=>cmHide()],
   regret:[['me','我只是想把球拿回來……我沒有想要他受傷……'],()=>FX.devilIn(),['devil','是他拿走你的球，是他先不對，不關你的事。']],
   angel:[['angel','就算對方先不對，也不能用追趕、貼近的方式討回來。生氣的時候，更要冷靜。'],['angel','我讓時間倒轉，回到你剛剛握緊拳頭的時候。這一次，請你自己做出正確的選擇！']],
-  keyLines:[()=>{S.ball.visible=true;S.yu.carry=true;},['nar','小宇抱著球走了，你握緊了拳頭，心跳好快。'],['angel','這一次，你可以自己選。生氣的時候，想一想最先要做的事。']],
+  keyLines:[()=>{S.ball.visible=true;S.holdBy(S.yu);},['nar','小宇抱著球走了，你握緊了拳頭，心跳好快。'],['angel','這一次，你可以自己選。生氣的時候，想一想最先要做的事。']],
   key:{q:'球被拿走了，你很生氣，要怎麼做？',opts:[
     {t:'停下來，慢慢深呼吸三秒，再去找王老師幫忙',ok:true},
     {t:'追上去，只是想請他把球還我',v:'follow',after:'你一路追在他後面，越追越近，小宇緊張地加快了腳步。',why:'生氣的時候追著別人，對方會緊張、加快腳步，貼太近就可能踩到他的鞋跟而摔倒。'},
     {t:'邊走邊大聲罵他，讓大家都知道他不對',v:'shout',after:'你邊走邊罵，小宇回頭看你，腳步慌亂，你一步跟上，踩到他的鞋跟。',why:'大聲罵人會讓對方回頭、腳步慌亂，更容易出意外。'},
     {t:'走到他旁邊，一路用手指戳他，要他還球',v:'poke',after:'你走在他身後一直戳他，他閃躲時被你踩到鞋跟，整個人往旁邊倒下。',why:'碰觸、推戳別人本來就不行，閃躲的人更容易失去平衡。'}]},
-  async safe(S){const yu=S.yu;S.ball.visible=true;yu.carry=true;
+  async safe(S){const yu=S.yu;S.ball.visible=true;S.holdBy(yu);
     await par(tween(0.1,()=>{}),(async()=>{S.me.pose='breathe';})());
     await tween(2.4,k=>{rig.look.set(lerp(rig.look.x,3.0,k*0.1),lerp(rig.look.y,1.3,k*0.1),lerp(rig.look.z,-6.0,k*0.1));rig.pos.y=1.34+Math.sin(k*PI*2)*0.02;});
-    walkTo(yu,new V3(9.2,0,-16.5),4,'walk');await par(walkTo(S.tea,new V3(0.6,0,-2.2),1.0,'walk'),moveFP(new V3(0.4,1.34,0.4),1.8,'walk',new V3(0.6,1.3,-2.4)));},
+    walkTo(yu,new V3(7.6,0,-8.2),3.2,'walk');await par(walkTo(S.tea,new V3(0.6,0,-2.2),1.0,'walk'),moveFP(new V3(0.4,1.34,0.4),1.8,'walk',new V3(0.6,1.3,-2.4)));},
   safeLines:[['teacher','怎麼了？你的臉色看起來不太好。'],['me','小宇把我們的球拿走了，我很生氣，可是我知道不能追過去。'],['teacher','你先冷靜下來，做得很好。老師幫你去跟他說，把球拿回來。'],
-    async S=>{S.tea.pose='idle';await walkTo(S.tea,new V3(5.0,0,-5.2),1.8,'walk');S.kai.pose='cheer';},
+    async S=>{await courtReturn(S);},
     ['angel','答對了！生氣的時候先停下來，慢慢呼吸三秒，再去找老師。不追、不貼近、不動手，大家都平安。']],
 };
+
+/* 小宇 picks up the ball 小凱 kicked over: it bounces and rolls to a stop, he squats with knees and hips bent and lifts it with both palms on its sides */
+const PICK_D=0.31;
+async function courtPick(S){const yu=S.yu,b=S.ball,R=0.12;S.bc=null;yu.grip=null;
+  const P0=b.position.clone(),P=new V3(5.0,R,-4.7),dir=new V3().subVectors(P,P0).setY(0),L=dir.length();dir.normalize();const ax=new V3().crossVectors(new V3(0,1,0),dir).normalize();
+  let last=0;SFX.kick&&SFX.kick();
+  await tween(1.7,k=>{const e=1-Math.pow(1-k,2.2),d=L*e;b.position.copy(P0).addScaledVector(dir,d);
+    const hb=k<0.62?Math.abs(Math.sin(k/0.62*PI*2.0))*(0.55*(1-k/0.62)+0.1)*(k<0.31?1.6:0.6):0;b.position.y=R+hb;b.rotateOnWorldAxis(ax,(d-last)/R);last=d;});
+  const st=yu.root.position,to=new V3().subVectors(P,st).setY(0);const dist=to.length()-PICK_D;to.normalize();
+  const T=new V3(st.x+to.x*dist,0,st.z+to.z*dist);await walkTo(yu,T,Math.max(0.6,dist/0.9),'walk');faceTo(yu,P.x,P.z);
+  cmShow('cm-pick',[{slot:'A',shot:SH.body(yu,{f:1.7,r:1.1,y:0.8,ly:0.5,fov:46}),tag:'小宇彎腰撿起球'}],{life:3.4});
+  yu.pose='bendPick';yu.bend=0;yu.grip={w:0,mode:'side',up:0.4};
+  await tween(0.75,k=>{yu.bend=easeIO(k);yu.grip.w=Math.min(1,Math.max(0,(k-0.3)/0.7));});
+  await wait(0.2);const A=new V3();
+  await tween(0.85,k=>{const e=easeIO(k);yu.bend=1-e;yu.grip.up=lerp(0.4,-0.08,e);ballAnchor(yu,A);const ev=1-Math.pow(1-k,2.2),eh=Math.pow(k,2.4),bu=0.07*Math.sin(PI*k),yy=yu.root.rotation.y;b.position.set(lerp(P.x,A.x,eh)+Math.sin(yy)*bu,lerp(P.y,A.y,ev),lerp(P.z,A.z,eh)+Math.cos(yy)*bu);});
+  yu.pose='idle';yu.bend=0;S.holdBy(yu);await wait(0.2);faceTo(yu,0.2,1.4);await wait(0.6);}
+/* success: 王老師 brings 小宇 back and he hands the ball to 小凱 with both hands; 小凱 takes it from underneath */
+async function courtReturn(S){const yu=S.yu,tea=S.tea,kai=S.kai,b=S.ball;tea.pose='idle';
+  await walkTo(tea,new V3(6.7,0,-7.2),2.2,'walk');faceTo(tea,7.6,-8.2);faceTo(yu,6.7,-7.2);await wait(1.2);
+  const A=new V3(1.12,0,-2.15),B=new V3(0.56,0,-2.15);
+  await par(walkTo(yu,A,5.6,'walk'),walkTo(tea,new V3(1.7,0,-3.0),5.6,'walk'),(async()=>{await wait(3.2);await walkTo(kai,B,2.2,'walk');})(),
+    tween(5.6,k=>{rig.look.lerp(_tp.set(0.85,0.95,-2.15),0.03);}));
+  faceTo(yu,B.x,B.z);faceTo(kai,A.x,A.z);faceTo(tea,0.8,-2.15);
+  cmShow('cm-give',[{slot:'A',shot:SH.two(yu,kai,{ly:0.8,y:0.95,d:1.7,fov:40}),tag:'把球還給小凱'},{slot:'B',shot:()=>{const p=b.position;aim(_c3.set(p.x+0.15,p.y+0.35,p.z+0.75),p,34);},tag:'雙手交球'}],{life:3.6});
+  const A0=new V3(),M=new V3(),K=new V3();S.bc=null;kai.grip={w:0,mode:'under'};
+  await tween(0.8,k=>{const e=easeIO(k);ballAnchor(yu,A0);ballAnchor(kai,K);M.lerpVectors(A0,K,0.5);M.y+=0.04;b.position.lerpVectors(A0,M,e);kai.grip.w=Math.min(1,Math.max(0,(k-0.25)/0.75));});
+  await wait(0.3);await tween(0.5,k=>{yu.grip.w=1-easeIO(k);});yu.grip=null;
+  const M0=b.position.clone();await tween(0.65,k=>{ballAnchor(kai,K);b.position.lerpVectors(M0,K,easeIO(k));});
+  S.holdBy(kai,'under');kai.setMood('joy');yu.setMood('');}
 
 /* ---- 2. 圍牆邊的石頭 ---- */
 CASES.wall={id:'wall',cmDanger:{pose:'throwWind',t:'丟！',icon:'🪨',tag:'用力把石頭丟過牆',sfx:'咻——',vtag:'牆外的車'},mock:'你又被我騙了！石頭砸壞了好幾輛車，你和爸爸媽媽要一起賠 5 萬元！',roles:['xiaokai','teacher'],amb:'campus',no:2,ref:'',title:'圍牆邊的石頭',icon:'🧱',badge:'石頭不丟徽章',badgeIcon:'🪨',
@@ -2844,7 +2897,7 @@ async function bootVRM(){const go=$('#go'),lb=$('#lbar'),bar=lb.querySelector('i
   }catch(e){console.warn('載入失敗，改用內建角色',e);GAME.vrmOK=!!(VCH.me_b&&VCH.me_g);}
   bar.style.width='100%';lab.textContent='準備完成！';await new Promise(r=>setTimeout(r,250));
   lb.classList.add('hide');go.classList.remove('hide');go.disabled=false;GAME.vrm=!!VRM_ME;try{['b','g'].forEach(g=>{const t=thumbFor('me_'+g);const e=$('#ph_'+g);if(t&&e){e.textContent='';e.style.backgroundImage='url('+t+')';e.style.backgroundSize='cover';}});}catch(e){console.warn('chip thumb',e);}GAME.ready=true;}
-GAME.dbg=()=>({stairGait,stairWalk,ambScene,reward,gameOver,overlay,CASES,caseCard,srcOf,HELP,cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
+GAME.dbg=()=>({stairGait,stairWalk,armIK,ballAnchor,courtPick,courtReturn,ambScene,reward,gameOver,overlay,CASES,caseCard,srcOf,HELP,cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
 GAME.start=()=>$('#go').click();
 window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
 bootVRM();
