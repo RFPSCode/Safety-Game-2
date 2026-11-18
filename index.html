@@ -1109,7 +1109,7 @@ const JR_K=[-1.0,1.6,-0.6,0.9,0.45,0.12];
 const JP_K=[[0,-1.0,1.6,-0.6,0.9,0.45,0.12],[0.1,-0.15,0.15,0.4,-2.4,0.05,0],[0.3,-0.9,1.3,0.2,-1.9,0.2,0],[0.6,-0.6,0.8,0.1,-1.6,0.15,0]];
 const LD_K=[[0,-0.9,1.3,0.2,-1.9,0.2,0],[0.15,-1.55,2.25,-0.6,-1.3,0.5,0.22],[0.6,-1.45,2.1,-0.55,-0.9,0.4,0.2]];
 /* ground contact: sample the skinned mesh vertices (bones applied) and move the root so the lowest point rests exactly on the floor below it */
-const AIR_P=new Set(['jump','brace','trip','cheer','climb','bed']);const _gv=new V3();
+const AIR_P=new Set(['jump','brace','trip','cheer','climb','bed','stairs']);const _gv=new V3();
 function groundSnap(c){if(c.kind!=='vrm'||!c.root.visible||!(c.groundOn??!AIR_P.has(c.pose))){return;}
   if(!c._gs){c._gs=[];let tot=0;c.vrm.scene.traverse(o=>{if(o.isSkinnedMesh&&o.visible)tot+=o.geometry.attributes.position.count;});const step=Math.max(1,Math.floor(tot/2200));
     c.vrm.scene.traverse(o=>{if(o.isSkinnedMesh&&o.visible){const n=o.geometry.attributes.position.count,ix=[];for(let i=0;i<n;i+=step)ix.push(i);c._gs.push({m:o,ix});}});}
@@ -1121,7 +1121,7 @@ function makeVRMChar(vrm,height=1.42,opts={}){
   c.root.rotation.order='YXZ';const body=new THREE.Group();c.root.add(body);c.body=body;body.add(vrm.scene);
   vrm.scene.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(vrm.scene);const sc=height/(bb.max.y-bb.min.y);c.sc=sc;c.hgt=height;vrm.scene.scale.setScalar(sc);vrm.scene.position.y=-bb.min.y*sc;
   vrm.scene.updateMatrixWorld(true);
-  const H=vrm.humanoid;c.B={};VB.forEach(n=>{const b=H.getNormalizedBoneNode(n);if(b)c.B[n]=b;});
+  const H=vrm.humanoid;c.B={};VB.forEach(n=>{const b=H.getNormalizedBoneNode(n);if(b)c.B[n]=b;});{vrm.scene.updateMatrixWorld(true);const g=n=>{const v=new V3();c.B[n].getWorldPosition(v);return v;};const hp=g('leftUpperLeg'),kn=g('leftLowerLeg'),an=g('leftFoot');c.legR={hip:hp.y,L1:hp.distanceTo(kn),L2:kn.distanceTo(an),ank:an.y,az:an.z-hp.z,toe:0.105*height};}
   const wp=n=>{const v=new V3();c.B[n].getWorldPosition(v);return v.y;};
   c.hipsY=wp('hips');c.headY=wp('head')+0.12;
   if(vrm.lookAt){vrm.lookAt.target=camera;vrm.lookAt.autoUpdate=true;}
@@ -1182,10 +1182,11 @@ function makeVRMChar(vrm,height=1.42,opts={}){
     else if(P==='climb'){const a=c.climbK!=null?Math.cos(c.climbK*PI):Math.sin(t*3.2),u=Math.max(0,a),v=Math.max(0,-a);arm(T,1,1.45,-2.35-0.45*u,0.35+0.5*v);arm(T,-1,1.45,-2.35-0.45*v,0.35+0.5*u);leg(T,1,-0.25-0.8*v,0.3+1.1*v,0.3);leg(T,-1,-0.25-0.8*u,0.3+1.1*u,0.3);T.spine=[0.1,0,0];T.neck=[-0.25,0,0];T.head=[-0.3,0,0];}
     else if(P==='jump'){leg(T,1,-1.05,1.45,0.35);leg(T,-1,-0.8,1.2,0.35);arm(T,1,1.45,-2.2,0.35);arm(T,-1,1.45,-2.2,0.35);T.spine=[0.2,0,0];}
     else if(P==='point'){arm(T,-1,1.55,-1.45,0.05);}
+    else if(P==='stairs'&&c.sg){const g=c.sg,R=c.legR;for(const sd of [1,-1]){const F=g.feet[sd];const dz=F.f-g.pf-R.az,dy=F.h+R.ank+R.toe*0.6*Math.sin(Math.max(0,F.p))-g.ph;let L=Math.hypot(dz,dy);L=Math.min(Math.max(L,Math.abs(R.L1-R.L2)+0.01),(R.L1+R.L2)*0.999);const ph=Math.atan2(dz,-dy),be=Math.acos(Math.min(1,Math.max(-1,(R.L1*R.L1+L*L-R.L2*R.L2)/(2*R.L1*L))));const a1=ph+be,kz=R.L1*Math.sin(a1),ky=-R.L1*Math.cos(a1),a2=Math.atan2(dz-kz,-(dy-ky));leg(T,sd,-a1,a1-a2,a2+F.p,0.03);}const am=(g.up?(g.fast?0.55:0.38):0.22)*g.tp,cs=Math.cos(PI*g.u)*am;arm(T,1,g.up?1.25:1.12,cs,g.fast?1.25:0.4);arm(T,-1,g.up?1.25:1.12,-cs,g.fast?1.25:0.4);T.spine=[g.up?(g.fast?0.34:0.17):0.03,0,0];T.chest=[g.up?0.04:0,-cs*0.12,0];T.neck=[g.up?0:0.12,0,0];T.head=[g.up?0.02:0.26,0,0];}
     if(c.carry&&!['trip','lie','hurtSit','jump','brace'].includes(P)){arm(T,1,CARRY[0],CARRY[1],CARRY[2],CARRY[3],CARRY[4]);arm(T,-1,CARRY[0],CARRY[1],CARRY[2],CARRY[3],CARRY[4]);T.chest=[0.04,0,0];}
     if(c.mood==='joy'&&P==='idle')bob+=Math.abs(Math.sin(t*6))*0.05;
     if(c.baseY0===undefined)c.baseY0=vrm.scene.position.y;c._drop=lerp(c._drop||0,drop*(c.hgt||1.3),c.snap?1:1-Math.exp(-dt*10));vrm.scene.position.y=c.baseY0-c._drop;
-    const k=c.snap?1:1-Math.exp(-dt*14);
+    const k=(c.snap||P==='stairs')?1:1-Math.exp(-dt*14);
     for(const n in c.B){if(n==='hips')continue;const e=T[n]||[0,0,0];E.set(e[0],e[1],e[2],'XYZ');Q.setFromEuler(E);if(e[3])Q.multiply(Q2.setFromAxisAngle(XA,e[3]));if(c.snap)c.B[n].quaternion.copy(Q);else c.B[n].quaternion.slerp(Q,k);}
     c.tears.forEach((tr,i)=>{tr.visible=c.mood==='hurt';if(tr.visible){const ph=(t*0.9+i*0.5)%1;tr.position.y=eye-0.012-ph*0.06;tr.scale.setScalar(1-ph*0.4);}});
     const em=vrm.expressionManager;if(em){const w={happy:0,sad:0,angry:0,surprised:0,relaxed:0,aa:0,ih:0,ou:0,ee:0,oh:0,blink:0};
@@ -1199,7 +1200,7 @@ function makeVRMChar(vrm,height=1.42,opts={}){
     c.root.getWorldPosition(_np);if((_np.distanceTo(_lp)>0.6||c.rs)&&vrm.springBoneManager){c.rs=0;vrm.scene.updateMatrixWorld(true);vrm.springBoneManager.reset();}_lp.copy(_np);
     c.snap=false;{const n=Math.max(1,Math.ceil(dt/0.02));for(let i=0;i<n;i++)vrm.update(dt/n);}
     c.root.updateMatrixWorld(true);let mn=1e9;for(const g of c.GB){g[0].getWorldPosition(_gv);if(_gv.y-g[1]<mn)mn=_gv.y-g[1];}
-    {const dl=c.root.matrixWorld.elements[13]-(mn-c.bobP);if(Math.abs(dl)>0.12)c.rs=1;c.lift=clamp(c.lift+dl,-1.7,0.8);}
+    {const dl=c.root.matrixWorld.elements[13]-(mn-c.bobP);if(Math.abs(dl)>0.12)c.rs=1;c.lift=P==='stairs'?0:clamp(c.lift+dl,-1.7,0.8);}
     _gv.set(0,1,0).applyQuaternion(_gq.copy(c.root.quaternion).invert());body.position.copy(_gv).multiplyScalar(c.lift+bob);c.bobP=bob;};
   c.setMood=m=>{c.mood=m||'';};c.mouthFrame=()=>{};
   return c;}
@@ -1930,7 +1931,7 @@ const SH={
   /* locked-off camera that keeps a subject (or the midpoint of two) in frame */
   fixed:(pos,a,b,o={})=>()=>{const m=_c1.copy(a.root.position);if(b)m.lerp(b.root.position,0.5);m.y+=o.ly??0.8;aim(_c3.set(...pos),m,o.fov??40);},
 };
-function stageRig(){if(S.climbOff){const o=S.climbOff;return{x:rig.pos.x-o.x,y:rig.pos.y-o.y,z:rig.pos.z-o.z,yaw:Math.atan2(rig.look.x-rig.pos.x,rig.look.z-rig.pos.z),pitch:S.climbPitch};}const x=rig.pos.x,z=rig.pos.z;return{x,y:Math.max(S.floor(x,z),rig.pos.y-(S.eye||1.3)),z,yaw:Math.atan2(rig.look.x-x,rig.look.z-z)};}
+function stageRig(){if(S.stairRoot)return S.stairRoot;if(S.climbOff){const o=S.climbOff;return{x:rig.pos.x-o.x,y:rig.pos.y-o.y,z:rig.pos.z-o.z,yaw:Math.atan2(rig.look.x-rig.pos.x,rig.look.z-rig.pos.z),pitch:S.climbPitch};}const x=rig.pos.x,z=rig.pos.z;return{x,y:Math.max(S.floor(x,z),rig.pos.y-(S.eye||1.3)),z,yaw:Math.atan2(rig.look.x-x,rig.look.z-z)};}
 const stageNear=(v,d)=>()=>{const vx=v.root.position.x,vz=v.root.position.z;let dx=vx-rig.pos.x,dz=vz-rig.pos.z;const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;const x=vx-dx*d,z=vz-dz*d;return{x,y:S.floor(x,z),z,yaw:Math.atan2(dx,dz)};};
 function cmRender(dt){if(!CM.ps.length)return;
   if(CM.life>0&&!CM.frozen){CM.life-=dt;if(CM.life<=0){cmHide();return;}}
@@ -2528,6 +2529,29 @@ function ambScene(){if(AMBU)return AMBU;
     close(){const p=car.position;aim(_c3.set(p.x+6.0,1.7,p.z+4.2),_c1.set(p.x+0.6,1.4,p.z),30);}};
   return AMBU;}
 
+/* ---- stair gait: step-over-step, feet placed on tread centres by 2-bone leg IK ---- */
+function stairGait(c,u,o){const R=c.legR,N=o.N,U=N+1,cl=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),ss=x=>{x=cl(x);return x*x*(3-2*x);};
+  u=cl(u,0,U);const k=u>=U?U:Math.floor(u)+1,w=u-(k-1),up=o.dir>0;
+  const H=j=>o.dir*o.rise*cl(j,0,N),D=j=>o.run*cl(j,0,N);
+  const pf=u<1?o.run*0.5*u*u:u>N?o.run*(N-0.5*(U-u)*(U-u)):o.run*(u-0.5);
+  const sup=up?lerp(H(k-2),H(k-1),ss(w/0.75)):lerp(H(k-1),H(k),ss((w-0.25)/0.75));
+  let ph=sup+R.hip*(o.fast?0.95:0.975);
+  const sw=k%2?-1:1,a=Math.max(0,k-2),b=Math.min(k,N),s=Math.min(k-1,N),fo=-R.toe*0.3;
+  const v=cl((w-0.1)/0.8),feet={};
+  feet[-sw]={f:D(s)+fo,h:H(s),p:0,on:1};
+  if(up){feet[sw]={f:lerp(D(a),D(b),ss(v))+fo,h:H(a)+(H(b)-H(a))*(1-Math.pow(1-v,3))+(o.fast?0.11:0.09)*Math.sin(PI*v),p:-0.25*Math.sin(PI*v),on:v<=0||v>=1};}
+  else{feet[sw]={f:lerp(D(a),D(b),1-Math.pow(1-v,1.6))+fo,h:H(a)+(H(b)-H(a))*Math.pow(v,1.5)+0.045*Math.sin(PI*v),p:0.34*Math.sin(PI*Math.pow(v,0.8)),on:v<=0||v>=1};}
+  /* trailing foot rolls onto its toes just before it lifts (going up) */
+  if(up&&w<0.12&&k>1)feet[sw].p=0.3*(w/0.12);
+  const Rm=(R.L1+R.L2)*0.985;for(const sd of [1,-1]){const F=feet[sd];if(!F.on)continue;const df=F.f-pf-R.az;ph=Math.min(ph,F.h+R.ank+Math.sqrt(Math.max(0,Rm*Rm-df*df)));}
+  const tp=cl(u/0.6)*cl((U-u)/0.6);
+  return{pf,ph,feet,u,U,tp,up,fast:!!o.fast};}
+async function stairWalk(S,o,dur){const me=S.me;me.pose='stairs';me.gaitV=null;const U=o.N+1,E=S.eye||1.3;let lk=-1;
+  await tween(dur,k=>{const u=k*U,g=stairGait(me,u,o);me.sg=g;const x=o.x+o.fx*g.pf,z=o.z+o.fz*g.pf,y=o.y+g.ph-me.legR.hip;
+    S.stairRoot={x,y,z,yaw:Math.atan2(o.fx,o.fz)};rig.fp=true;rig.bob=0;rig.pos.set(x,y+E,z);rig.look.set(x+o.fx*3,y+E+(g.up?0.1:-0.7),z+o.fz*3);
+    const kk=Math.floor(u+0.1);if(kk!==lk){lk=kk;SFX.step&&SFX.step(!!o.fast);}});
+  S.stairRoot=null;me.sg=null;me.pose='idle';}
+
 var BALL_FWD=0.1,BALL_UP=0.0;window.__setBall=(f,u)=>{BALL_FWD=f;BALL_UP=u;};
 /* ================= EPISODE 2 · CASES ================= */
 const CASES={};
@@ -2707,8 +2731,8 @@ CASES.stage={id:'stage',cmDanger:{pose:'jumpReady',t:'跳！',icon:'🦘',tag:'�
     ()=>FX.devilIn(),['devil','跑上司令台！從上面跳下來，一定超帥的！']],
   steps:[
     {lines:[['nar','司令台離地面大約一公尺，兩邊各有一座樓梯。']],q:'你要怎麼辦？',devil:'從樓梯一路跑上去！',good:'慢慢走上去',cm:{pose:'run',t:'衝！',icon:'🏃',tag:'跑上司令台',sfx:'噠噠',vtag:'樓梯'},
-      act:async(S,v)=>{await moveFP(new V3(8.0,1.25,-5.6),2.6,'run',new V3(10.5,1.2,-8.75));await moveFP(new V3(10.6,1.25,-8.75),0.9,'run',new V3(6,1.9,-8.75));
-        for(let i=ST.n-1;i>=-1;i--){const x=ST.half+ST.run*(i+0.5),y=(i<0?ST.top:ST.top-ST.rise*(i+1))+1.25;await moveFP(new V3(x,y,-8.75),0.16,'',new V3(4,y+0.15,-8.75));}
+      act:async(S,v)=>{await moveFP(new V3(8.0,1.25,-5.6),2.6,'run',new V3(10.5,1.2,-8.75));await moveFP(new V3(ST.half+ST.run*(ST.n+0.5),1.25,-8.75),0.8,'run',new V3(6,1.6,-8.75));
+        await stairWalk(S,{x:ST.half+ST.run*(ST.n+0.5),y:0,z:-8.75,fx:-1,fz:0,dir:1,N:ST.n+1,run:ST.run,rise:ST.rise,fast:true},1.7);S.me.pose='run';
         S.meiOn();await moveFP(new V3(0,2.3,-7.85),2.4,'walk',new V3(-3,0.6,-6.8));}},
     {lines:[['nar','你站在司令台邊緣，離地面一公尺高。下面有一位同學走過來，蹲下來綁鞋帶。'],['devil','不要管她！直接跳下去，她會閃開的！']],q:'你要怎麼做？',devil:'直接跳下去！',good:'走旁邊的樓梯下去'}],
   keyIdx:1,
@@ -2746,8 +2770,8 @@ CASES.stage={id:'stage',cmDanger:{pose:'jumpReady',t:'跳！',icon:'🦘',tag:'�
       why:'助跑會讓速度變快、更難控制，腳一勾到東西就會摔下來。不管有沒有人，都不能從司令台往下跳。'}]},
   async safe(S){const m=S.mei;S.jog=false;m.root.visible=true;m.gaitV=null;S.me.pose='idle';
     await camTo(new V3(0,2.3,-7.85),new V3(6,1.7,-8.6),0.9);
-    await moveFP(new V3(7.6,2.3,-8.75),3.0,'walk',new V3(11,1.6,-8.75));
-    for(let i=0;i<=ST.n;i++){const x=ST.half+ST.run*(i+0.5),y=(i>=ST.n?0:ST.top-ST.rise*(i+1))+1.25;SFX.step&&SFX.step(false);await moveFP(new V3(x,y,-8.75),0.42,'',new V3(x+3,y-0.45,-8.75));}
+    await moveFP(new V3(ST.half-ST.run*0.5,2.3,-8.75),3.0,'walk',new V3(11,1.6,-8.75));
+    await stairWalk(S,{x:ST.half-ST.run*0.5,y:ST.top,z:-8.75,fx:1,fz:0,dir:-1,N:ST.n+1,run:ST.run,rise:ST.rise},4.4);
     m.pose='idle';await wait(0.3);walkTo(m,new V3(9.6,0,-6.9),5.0,'walk');await camTo(new V3(10.5,1.25,-8.4),new V3(9.6,1.0,-6.9),1.4);await wait(3.2);m.pose='idle';faceTo(m,10.5,-8.4);S.mei.setMood('joy');},
   safeLines:[['xiaomei','你是走樓梯下來的耶！'],['me','司令台很高，跳下來太危險了，我走樓梯就好。'],['xiaomei','還好你沒有跳，我剛剛就蹲在前面綁鞋帶！'],
     async S=>{S.mei.pose='cheer';},
@@ -2820,7 +2844,7 @@ async function bootVRM(){const go=$('#go'),lb=$('#lbar'),bar=lb.querySelector('i
   }catch(e){console.warn('載入失敗，改用內建角色',e);GAME.vrmOK=!!(VCH.me_b&&VCH.me_g);}
   bar.style.width='100%';lab.textContent='準備完成！';await new Promise(r=>setTimeout(r,250));
   lb.classList.add('hide');go.classList.remove('hide');go.disabled=false;GAME.vrm=!!VRM_ME;try{['b','g'].forEach(g=>{const t=thumbFor('me_'+g);const e=$('#ph_'+g);if(t&&e){e.textContent='';e.style.backgroundImage='url('+t+')';e.style.backgroundSize='cover';}});}catch(e){console.warn('chip thumb',e);}GAME.ready=true;}
-GAME.dbg=()=>({ambScene,reward,gameOver,overlay,CASES,caseCard,srcOf,HELP,cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
+GAME.dbg=()=>({stairGait,stairWalk,ambScene,reward,gameOver,overlay,CASES,caseCard,srcOf,HELP,cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
 GAME.start=()=>$('#go').click();
 window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
 bootVRM();
