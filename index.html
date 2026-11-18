@@ -296,8 +296,9 @@ body.jail #cv{filter:grayscale(1) contrast(1.2) brightness(.72)}
 @keyframes slam{0%{opacity:0;transform:scale(3.4) rotate(var(--r,0deg))}70%{opacity:1;transform:scale(.94) rotate(var(--r,0deg))}100%{opacity:1;transform:scale(1) rotate(var(--r,0deg))}}
 @keyframes starpop{0%{opacity:0;transform:scale(0) rotate(-180deg)}70%{transform:scale(1.5) rotate(10deg)}100%{opacity:1;transform:scale(1)}}
 @keyframes rsShake{0%,100%{transform:none}20%{transform:translate(-12px,6px)}40%{transform:translate(10px,-8px)}60%{transform:translate(-7px,-4px)}80%{transform:translate(5px,5px)}}
-.ovl.full{padding:0;overflow:auto;backdrop-filter:none}
-.ovl.full>.panel{position:relative;width:min(1140px,97vw);max-height:none;background:none;border:0;box-shadow:none;padding:2vh 0 3vh;overflow:visible;animation:none}
+.ovl.full{padding:0;overflow-x:hidden;overflow-y:auto;backdrop-filter:none;display:flex;flex-direction:column;align-items:center}
+.ovl.lose{padding:28px 0}
+.ovl.full>.panel{position:relative;margin:auto 0;flex:0 0 auto;width:min(1140px,97vw);max-height:none;background:none;border:0;box-shadow:none;padding:2vh 0 3vh;overflow:visible;animation:none}
 .ovl.win{background:radial-gradient(ellipse at 50% 38%,#fff6c4 0,#ffbf3c 26%,#3a44b8 68%,#11164a)}
 .ovl.win::before{content:'';position:fixed;left:50%;top:38%;width:150vmax;height:150vmax;margin:-75vmax;background:repeating-conic-gradient(rgba(255,255,255,.2) 0 7deg,transparent 7deg 14deg);animation:back 50s linear infinite reverse;pointer-events:none}
 .ovl.lose{background:radial-gradient(ellipse at 50% 34%,rgba(170,20,44,.86),rgba(22,4,10,.97) 72%)}
@@ -325,7 +326,11 @@ body.jail #cv{filter:grayscale(1) contrast(1.2) brightness(.72)}
 .ovl.verdict .panel{width:min(780px,96vw)}
 .verdict .case .hd{font-size:clamp(24px,3.4vw,34px)}.verdict .case .ds{font-size:clamp(19px,2.4vw,24px)}
 .verdict .pill{--r:-3deg;font-size:clamp(32px,5.6vw,56px);padding:8px 34px;border-width:5px;margin:8px 0 6px;animation:slam .5s .45s both}
-@media (min-width:900px){.rs-main{flex-wrap:nowrap}.ovl.full .rs-info{flex:1 1 340px;min-width:0;max-width:500px}}
+@media (min-width:900px){.rs-main{flex-wrap:nowrap}.ovl.full .rs-info{flex:1 1 460px;min-width:min(400px,44vw);max-width:640px}.rs-badge{flex:0 1 auto;min-width:0}.fine{font-size:clamp(28px,min(3.6vw,9vh),72px)}}
+.ovl.full .btns{flex-wrap:wrap}.ovl.full .btns .btn{flex:1 1 0;min-width:max-content}
+.ovl.full .rs-info .tip,.ovl.full .rs-info .why{font-size:clamp(15px,min(2vw,2.3vh),21px)}.ovl.full .rs-info .ds{font-size:clamp(14px,min(1.8vw,2.1vh),19px);line-height:1.5}
+@media (max-height:960px) and (min-width:700px){.lose .rs-title{font-size:clamp(40px,11vh,104px)}.ovl.full>.panel{padding:1vh 0 1.5vh}.lose .rs-main{margin-top:0.5vh}}
+@media (max-height:820px) and (min-width:700px){.ovl.full .rs-info{padding:12px 16px 14px}.ovl.full .rs-info .ds{margin:6px 2px}.ovl.full .btns{margin-top:10px}}
 @media (prefers-reduced-motion:reduce){.rs-title,.fine,.verdict .pill,.stars i,.ovl.lose>.panel,.cmp.impact,.cmp.shock{animation:none}}
 
 #slow{position:fixed;left:50%;top:calc(7vh + 10px);transform:translateX(-50%);z-index:19;pointer-events:none;background:rgba(20,22,58,.88);color:#fff;font-weight:900;letter-spacing:6px;font-size:clamp(14px,1.8vw,20px);padding:5px 16px 5px 14px;border:3px solid #ffd23f;border-radius:999px;display:flex;align-items:center;gap:8px}
@@ -2559,7 +2564,7 @@ CASES.stage={id:'stage',cmDanger:{pose:'jumpReady',t:'跳！',icon:'🦘',tag:'�
   async tragedy(S,v){S.v=v;if(v==='run')return S.selfFall();
     const m=S.mei;S.jog=false;m.root.visible=true;m.gaitV=null;S.me.pose='jumpReady';if(v==='yell'){toast('「讓開！我要跳了！」',1300);}
     m.pose='idle';await wait(0.35);const L=new V3(0,0,-6.75),Tj=0.30;
-    walkTo(m,new V3(3.0,0,-6.75),(L.distanceTo(m.root.position)+3.0)/1.1,'walk',{keep:true});
+    walkTo(m,L.clone(),L.distanceTo(m.root.position)/1.1,'walk',{keep:true});
     const lead=Math.max(0.2,L.distanceTo(m.root.position)/1.1-Tj);
     if(v==='glance'){await tween(0.45,k=>rig.look.lerp(_tp.set(4,0.3,-6.2),0.12));await tween(0.35,k=>rig.look.lerp(_tp.set(-5,0.3,-6.2),0.12));await tween(Math.max(0.1,lead-0.8),k=>rig.look.lerp(_tp.set(0,0.6,-6.4),0.1));}
     else await tween(lead,k=>rig.look.lerp(_tp.copy(m.root.position).setY(0.7),0.08));
@@ -2584,10 +2589,10 @@ CASES.stage={id:'stage',cmDanger:{pose:'jumpReady',t:'跳！',icon:'🦘',tag:'�
     {t:'不跳，走到旁邊的樓梯，一階一階走下去',ok:true},
     {t:'看一眼，覺得她走過去了，就直接跳',v:'glance',after:'你只看了一眼，沒想到她剛好走到司令台前面。你已經跳下去了。',why:'只看一眼不夠，人一直在移動，你跳下去的時候，她可能剛好走到下面。'},
     {t:'大喊「我要跳了」，然後馬上跳下去',v:'yell',after:'你一喊完就跳，小美嚇了一跳，根本來不及閃開。',why:'大喊之後馬上跳，別人沒有時間反應。'},
-    {t:'往後退幾步，助跑跳遠一點，就不會壓到人',v:'run',self:true,award:'手骨折、頭部縫 12 針',desc:'助跑往下跳，腳尖勾到司令台邊緣，整個人往前撲倒：右手撐地骨折，頭部撞破縫了 12 針、頭髮要剃掉，住院一個禮拜。',
+    {t:'往後退幾步，助跑跳遠一點，就不會壓到人',v:'run',self:true,award:'手骨折、頭部縫 12 針',desc:'腳尖勾到台緣往前撲倒：右手骨折，頭部縫 12 針並剃髮，住院一週。',
       after:'你往後退了幾步，用力助跑。就在跳起來的那一刻，腳尖勾到司令台邊緣凸起的石台，整個人往前撲了下去。',
       lines:[['me','好痛……我的手……我的頭……'],['teacher','不要動！手不要亂動，老師馬上叫救護車，也通知你的家長。'],()=>cmAmb(),['nar','救護車很快就到了，把你送到醫院。'],()=>cmHide()],
-      why:'助跑會讓速度變快、更難控制，只要腳勾到一點點東西，就會從高處摔下來。不管有沒有人，都不能從司令台往下跳。'}]},
+      why:'助跑會讓速度變快、更難控制，腳一勾到東西就會摔下來。不管有沒有人，都不能從司令台往下跳。'}]},
   async safe(S){const m=S.mei;S.jog=false;m.root.visible=true;m.gaitV=null;S.me.pose='idle';
     await camTo(new V3(0,2.3,-7.85),new V3(6,1.7,-8.6),0.9);
     await moveFP(new V3(7.6,2.3,-8.75),3.0,'walk',new V3(11,1.6,-8.75));
@@ -2663,7 +2668,7 @@ async function bootVRM(){const go=$('#go'),lb=$('#lbar'),bar=lb.querySelector('i
   }catch(e){console.warn('載入失敗，改用內建角色',e);GAME.vrmOK=!!(VCH.me_b&&VCH.me_g);}
   bar.style.width='100%';lab.textContent='準備完成！';await new Promise(r=>setTimeout(r,250));
   lb.classList.add('hide');go.classList.remove('hide');go.disabled=false;GAME.vrm=!!VRM_ME;try{['b','g'].forEach(g=>{const t=thumbFor('me_'+g);const e=$('#ph_'+g);if(t&&e){e.textContent='';e.style.backgroundImage='url('+t+')';e.style.backgroundSize='cover';}});}catch(e){console.warn('chip thumb',e);}GAME.ready=true;}
-GAME.dbg=()=>({cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
+GAME.dbg=()=>({reward,gameOver,overlay,CASES,caseCard,srcOf,HELP,cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
 GAME.start=()=>$('#go').click();
 window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
 bootVRM();
