@@ -1796,8 +1796,8 @@ function impact(color='#ff3b3b'){SFX.thud();if(S&&S.phase!=='crash'){S.phase='cr
 let REC=null;
 function snapState(S){return{p:rig.pos.toArray(),l:rig.look.toArray(),r:rig.roll,
   a:S.actors.map(c=>({p:c.root.position.toArray(),r:[c.root.rotation.x,c.root.rotation.y,c.root.rotation.z],pose:c.pose,mood:c.mood,as:c.animSpeed,v:c.root.visible,m:(c.marks||[]).map(m=>m.visible)})),
-  h:{v:hand.visible,p:hand.userData.pos.toArray()}};}
-function applyState(S,s){rig.pos.fromArray(s.p);rig.look.fromArray(s.l);rig.roll=s.r;rig.bob=0;
+  h:{v:hand.visible,p:hand.userData.pos.toArray()},x:S.snapX?S.snapX():null};}
+function applyState(S,s){if(S.applyX&&s.x)S.applyX(s.x);rig.pos.fromArray(s.p);rig.look.fromArray(s.l);rig.roll=s.r;rig.bob=0;
   S.actors.forEach((c,i)=>{const a=s.a[i];c.root.position.fromArray(a.p);c.root.rotation.set(a.r[0],a.r[1],a.r[2]);c.pose=a.pose;c.animSpeed=a.as;c.setMood(a.mood);c.root.visible=a.v;(c.marks||[]).forEach((m,j)=>m.visible=a.m[j]);c.snap=true;});
   hand.visible=s.h.v;hand.userData.pos.fromArray(s.h.p);hand.userData.cur.fromArray(s.h.p);}
 async function rewind(S,key){const fr=REC||[];REC=null;hush();FX.hideAll();$('#sub').classList.add('hide');
@@ -1964,7 +1964,7 @@ const DIR={
     run:S=>[{slot:'A',shot:SH.body(S.me,{f:-2.4,r:0.8,y:1.25,ly:0.95,fov:46}),fx:'speed',tag:'怒氣沖沖地追',sfx:'噠噠'},{slot:'B',shot:SH.body(S.me,{f:1.7,r:1.1,y:0.45,ly:0.5,fov:44}),fx:'speed',tag:'越走越快'}],
     approach:(S,v)=>({pose:'walk',stage:null,ps:[{slot:'A',shot:SH.body(S.yu,{f:-1.55,r:-0.45,y:0.4,ly:0.12,fov:40}),fx:'speed',tag:'腳尖貼著他的鞋跟',sfx:'唰'},{slot:'B',shot:SH.fixed([10.7,1.15,-15.6],S.me,S.yu,{ly:0.7,fov:40}),tag:'距離只剩半步'}],burst:{t:'危險！',icon:'⚠️'}}),
     impact:S=>({ps:[{slot:'A',shot:()=>aim(_c3.set(10.3,0.8,-12.4),_c1.set(8.2,0.7,-13.9),44),fx:'impact',tag:'撞上水泥柱'},{slot:'B',shot:SH.face(S.yu),fx:'impact',tag:'小宇'},{slot:'C',shot:SH.face(S.me,-0.24),fx:'shock',em:'！！'}]}),
-    safe:S=>({pose:'breathe',ps:[{slot:'A',shot:SH.body(S.me,{f:2.4,r:0.7,y:0.9,ly:0.8,fov:46}),fx:'glow',tag:'停下來'},{slot:'B',shot:SH.part(S.me,'chest',{f:0.9,r:0.15,y:0.15,fov:38}),fx:'glow',tag:'深呼吸三秒'}]}),
+    safe:S=>({pose:'breathe',ps:[{slot:'A',shot:()=>{const m=S.me.root.position,y=S.yu.root.position;let dx=y.x-m.x,dz=y.z-m.z;const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;aim(_c3.set(m.x-dx*1.5-dz*0.45,m.y+1.6,m.z-dz*1.5+dx*0.45),_c1.set(y.x,y.y+0.75,y.z),24);},fx:'glow',tag:'停下來，不追'},{slot:'B',shot:SH.part(S.me,'chest',{f:0.9,r:0.15,y:0.15,fov:38}),fx:'glow',tag:'深呼吸三秒'}]}),
   },
   wall:{
     insert:[S=>({shot:SH.part(S.me,'rightHand',{f:0.6,r:0.3,y:0.1,fov:34}),tag:'手上的石頭'}),S=>({shot:()=>aim(_c3.set(0,3.4,-4.2),_c1.set(0.4,0.8,-10.6),46),tag:'牆外面，是什麼？'})],
@@ -2019,7 +2019,7 @@ function bballTex(){if(_bbTex)return _bbTex;_bbTex=canvasTex(1024,512,(g,w,h)=>{
     [0.25,0.75].forEach(u=>{g.beginPath();g.moveTo(u*w,0);g.lineTo(u*w,h);g.stroke();});
     [0,0.5].forEach(u0=>{[-1,1].forEach(sd=>{g.beginPath();for(let k=0;k<=64;k++){const v=k/64,lat=(v-0.5)*Math.PI;const du=sd*(0.25-0.17*Math.cos(lat));const x=((u0+0.25+du)%1+1)%1;if(k===0)g.moveTo(x*w,v*h);else g.lineTo(x*w,v*h);}g.stroke();});});
   },[1,1],true);_bbTex.colorSpace=THREE.SRGBColorSpace;return _bbTex;}
-function ball(sc,r=0.12){const m=new THREE.Mesh(new THREE.SphereGeometry(r,32,20),new THREE.MeshStandardMaterial({map:bballTex(),roughness:0.75}));m.castShadow=true;m.rotation.set(0.4,0.6,0.2);sc.add(m);return m;}
+function ball(sc,r=0.12){const m=new THREE.Mesh(new THREE.SphereGeometry(r,32,20),new THREE.MeshStandardMaterial({map:bballTex(),roughness:0.75}));m.castShadow=true;m.rotation.set(0.4,0.6,0.2);m.userData.noCol=true;sc.add(m);return m;}
 
 /* ---- 1. 籃球場 + 輔導室走廊 ---- */
 function buildCourt(){
@@ -2582,6 +2582,70 @@ function armIK(c){const I=_ik,g=c.grip,G=c.gripBall,H=c.vrm.humanoid;c.root.upda
 /* where a holder keeps the ball: in front of the stomach */
 function ballAnchor(c,out){const y=c.root.rotation.y,f=(c.chestZ||0)+0.235;const p=c.root.position;return out.set(p.x+Math.sin(y)*f,p.y+(c.body?c.body.position.y:0)+(c.chestY||1)+0.05,p.z+Math.cos(y)*f);}
 
+/* ================= COLLISION & NAVIGATION =================
+   Static colliders come from the real scene triangles: every triangle between the floor and head height is rasterised
+   into a 0.1 m grid with a height-band bitmask (0.1 m bins). Characters are 0.2 m circles. Paths are planned with A*
+   on that grid (inflated by the body radius plus a margin) and then string-pulled; a checker can log overlaps. */
+const NAV={cs:0.1,X0:-45,Z0:-45,N:900,Y0:-0.2,BIN:0.1,R:0.2};
+function navBuild(sc){if(sc.userData.nav)return sc.userData.nav;const {cs,X0,Z0,N,Y0,BIN}=NAV;const M=new Uint32Array(N*N);sc.updateMatrixWorld(true);
+  const a=new V3(),b=new V3(),c=new V3(),p=new V3(),visible=o=>{for(let q=o;q;q=q.parent)if(!q.visible)return false;return true;};
+  const mark=(x,y,z)=>{const i=Math.floor((x-X0)/cs),j=Math.floor((z-Z0)/cs),k=Math.floor((y-Y0)/BIN);if(i<0||j<0||i>=N||j>=N||k<0||k>31)return;M[j*N+i]|=1<<k;};
+  sc.traverse(m=>{if(!m.isMesh||m.isSkinnedMesh||m.userData.noCol||!visible(m))return;const g=m.geometry;if(!g||!g.attributes.position)return;
+    if(!g.boundingSphere)g.computeBoundingSphere();if(g.boundingSphere.radius*m.matrixWorld.getMaxScaleOnAxis()>40)return;
+    if(m.material&&(m.material.side===THREE.BackSide))return;
+    const P=g.attributes.position,I=g.index,n=I?I.count:P.count,mw=m.matrixWorld;
+    for(let t=0;t<n;t+=3){const ia=I?I.getX(t):t,ib=I?I.getX(t+1):t+1,ic=I?I.getX(t+2):t+2;
+      a.fromBufferAttribute(P,ia).applyMatrix4(mw);b.fromBufferAttribute(P,ib).applyMatrix4(mw);c.fromBufferAttribute(P,ic).applyMatrix4(mw);
+      const lo=Math.min(a.y,b.y,c.y),hi=Math.max(a.y,b.y,c.y);if(hi<0.12||lo>3.0)continue;
+      const n1=Math.max(1,Math.ceil(a.distanceTo(b)/0.05)),n2=Math.max(1,Math.ceil(a.distanceTo(c)/0.05));if(n1*n2>400000)continue;
+      for(let u=0;u<=n1;u++)for(let v=0;v<=n2;v++){const fu=u/n1,fv=v/n2;if(fu+fv>1.0001)continue;p.copy(a).addScaledVector(_nv1.subVectors(b,a),fu).addScaledVector(_nv2.subVectors(c,a),fv);mark(p.x,p.y,p.z);}}});
+  /* solid interiors: small free pockets fully enclosed by walls (inside pillars, trunks, posts) are filled, so a body inside one is caught */
+  {const bm=navBand(0,0.3,1.3),seen=new Uint8Array(N*N),q=new Int32Array(N*N);for(let s0=0;s0<N*N;s0++){if(seen[s0]||(M[s0]&bm))continue;let h=0,t=0,edge=false;q[t++]=s0;seen[s0]=1;
+      while(h<t){const k=q[h++],i=k%N,j=(k/N)|0;if(i===0||j===0||i===N-1||j===N-1)edge=true;for(const nk of [k-1,k+1,k-N,k+N]){if(nk<0||nk>=N*N||seen[nk]||(M[nk]&bm))continue;if((nk%N===0&&k%N===N-1)||(k%N===0&&nk%N===N-1))continue;seen[nk]=1;q[t++]=nk;}}
+      if(!edge&&t<300)for(let n=0;n<t;n++)M[q[n]]|=bm;}}
+  const nav={M,sc};sc.userData.nav=nav;return nav;}
+const _nv1=new V3(),_nv2=new V3();
+function navBand(fy,lo=0.22,hi=1.35){const {Y0,BIN}=NAV;let m=0;for(let k=Math.max(0,Math.ceil((fy+lo-Y0)/BIN-1e-6));k<=Math.min(31,Math.floor((fy+hi-Y0)/BIN));k++)m|=1<<k;return m;}
+/* is a body circle of radius r standing at (x,z) intersecting static geometry? */
+function navHit(nav,x,z,r,fy){const {cs,X0,Z0,N}=NAV;const band=navBand(fy);const i0=Math.floor((x-r-X0)/cs),i1=Math.floor((x+r-X0)/cs),j0=Math.floor((z-r-Z0)/cs),j1=Math.floor((z+r-Z0)/cs);
+  for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){if(i<0||j<0||i>=N||j>=N)continue;const cx=X0+(i+0.5)*cs,cz=Z0+(j+0.5)*cs;if((cx-x)**2+(cz-z)**2>(r+cs*0.5)**2)continue;if(nav.M[j*N+i]&band)return true;}return false;}
+/* A* from a to b (Vector3, y ignored) keeping clearance r from geometry and from the given dynamic circles [{x,z,r}] */
+function navPath(sc,a,b,o={}){const nav=navBuild(sc),{cs,X0,Z0,N}=NAV,r=o.r??(NAV.R+0.1),fl=(S&&S.floor)||(()=>0),dyn=o.avoid||[];
+  const pad=6,ix0=Math.max(0,Math.floor((Math.min(a.x,b.x)-pad-X0)/cs)),ix1=Math.min(N-1,Math.floor((Math.max(a.x,b.x)+pad-X0)/cs)),jz0=Math.max(0,Math.floor((Math.min(a.z,b.z)-pad-Z0)/cs)),jz1=Math.min(N-1,Math.floor((Math.max(a.z,b.z)+pad-Z0)/cs));
+  const W=ix1-ix0+1,Hh=jz1-jz0+1,free=new Int8Array(W*Hh).fill(-1);
+  const isFree=(i,j)=>{const k=(j-jz0)*W+(i-ix0);if(free[k]<0){const x=X0+(i+0.5)*cs,z=Z0+(j+0.5)*cs;let f=!navHit(nav,x,z,r,fl(x,z));if(f)for(const d of dyn)if((d.x-x)**2+(d.z-z)**2<(d.r+r)**2){f=false;break;}free[k]=f?1:0;}return free[k]===1;};
+  const cell=v=>[Math.min(ix1,Math.max(ix0,Math.floor((v.x-X0)/cs))),Math.min(jz1,Math.max(jz0,Math.floor((v.z-Z0)/cs)))];
+  const [si,sj]=cell(a),[gi,gj]=cell(b);const G=new Float32Array(W*Hh).fill(1e9),from=new Int32Array(W*Hh).fill(-1),closed=new Uint8Array(W*Hh);
+  const heap=[];const push=(k,f)=>{heap.push([f,k]);let n=heap.length-1;while(n>0){const p=(n-1)>>1;if(heap[p][0]<=heap[n][0])break;[heap[p],heap[n]]=[heap[n],heap[p]];n=p;}};
+  const pop=()=>{const t=heap[0],l=heap.pop();if(heap.length){heap[0]=l;let n=0;for(;;){let m=n,L=2*n+1,R=L+1;if(L<heap.length&&heap[L][0]<heap[m][0])m=L;if(R<heap.length&&heap[R][0]<heap[m][0])m=R;if(m===n)break;[heap[m],heap[n]]=[heap[n],heap[m]];n=m;}}return t;};
+  const K=(i,j)=>(j-jz0)*W+(i-ix0),hh=(i,j)=>Math.hypot(i-gi,j-gj);const s0=K(si,sj),g0=K(gi,gj);G[s0]=0;push(s0,hh(si,sj));let found=false,it=0;
+  while(heap.length&&it++<400000){const [,k]=pop();if(closed[k])continue;closed[k]=1;if(k===g0){found=true;break;}const i=k%W+ix0,j=Math.floor(k/W)+jz0;
+    for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){if(!di&&!dj)continue;const ni=i+di,nj=j+dj;if(ni<ix0||nj<jz0||ni>ix1||nj>jz1)continue;const nk=K(ni,nj);if(closed[nk])continue;
+      /* start/goal cells are allowed even if tight (characters end next to each other on purpose) */
+      if(nk!==g0&&!isFree(ni,nj)&&!(Math.hypot(ni-si,nj-sj)<3))continue;const ng=G[k]+(di&&dj?1.4142:1);if(ng<G[nk]){G[nk]=ng;from[nk]=k;push(nk,ng+hh(ni,nj));}}}
+  if(!found)return [a.clone().setY(0),b.clone().setY(0)];
+  const pts=[];for(let k=g0;k>=0;k=from[k]){pts.push(new V3(X0+(k%W+ix0+0.5)*cs,0,Z0+(Math.floor(k/W)+jz0+0.5)*cs));if(k===s0)break;}pts.reverse();pts[0]=a.clone().setY(0);pts[pts.length-1]=b.clone().setY(0);
+  /* string pulling: keep only the corners needed for straight, collision-free segments */
+  const clear=(p,q)=>{const L=p.distanceTo(q),n=Math.ceil(L/0.05);for(let s=1;s<n;s++){const x=lerp(p.x,q.x,s/n),z=lerp(p.z,q.z,s/n);const i=Math.floor((x-X0)/cs),j=Math.floor((z-Z0)/cs);if(i<ix0||j<jz0||i>ix1||j>jz1)return false;
+      if(!isFree(i,j)&&Math.hypot(x-a.x,z-a.z)>0.3&&Math.hypot(x-b.x,z-b.z)>0.3)return false;}return true;};
+  const out=[pts[0]];let cur=0;while(cur<pts.length-1){let nx=pts.length-1;while(nx>cur+1&&!clear(pts[cur],pts[nx]))nx--;out.push(pts[nx]);cur=nx;}return out;}
+/* walk along a planned path; the body turns smoothly toward each segment */
+async function walkPath(c,to,speed=1.0,o={}){const sc=c.root.parent,pts=navPath(sc,c.root.position,to,o);let L=0;const seg=[];for(let i=1;i<pts.length;i++){const l=pts[i].distanceTo(pts[i-1]);seg.push(l);L+=l;}
+  if(L<0.02){if(o.face)faceTo(c,o.face.x,o.face.z);return pts;}c.gaitV=speed;c.pose=speed>2.1?'run':'walk';const q=new V3();c._path=pts;
+  await tween(L/speed,k=>{let d=k*L,i=0;while(i<seg.length-1&&d>seg[i]){d-=seg[i];i++;}q.lerpVectors(pts[i],pts[i+1],Math.min(1,d/(seg[i]||1)));c.root.position.x=q.x;c.root.position.z=q.z;
+    const ty=Math.atan2(pts[i+1].x-pts[i].x,pts[i+1].z-pts[i].z);let dy=ty-c.root.rotation.y;dy=Math.atan2(Math.sin(dy),Math.cos(dy));c.root.rotation.y+=dy*0.18;});
+  c._path=null;if(!o.keep){c.pose='idle';c.gaitV=null;}if(o.face)faceTo(c,o.face.x,o.face.z);return pts;}
+/* development checker: logs bodies that overlap static geometry or each other */
+const COL={on:false,log:[],skip:new Set(['lie','trip','hurtSit','hurtLeg','hurtArm','hurtMouth','bed','climb','jump','brace'])};
+function colCheck(){if(!COL.on||!S||!curScene)return;const nav=navBuild(curScene),fl=S.floor||(()=>0),cs=[];
+  LIVE.forEach(c=>{if(c.root.parent===curScene&&c.root.visible&&c.kind==='vrm')cs.push(c);});
+  const nm=c=>Object.keys(CHAR).find(k=>CHAR[k]===c)||'?';
+  for(const c of cs){if(COL.skip.has(c.pose)||c.noCol)continue;const p=c.root.position;if(navHit(nav,p.x,p.z,0.16,fl(p.x,p.z)))COL.log.push({st:GAME.state,t:'wall',who:nm(c),x:+p.x.toFixed(2),z:+p.z.toFixed(2)});}
+  if(rig.fp&&mode==='case'&&!S.climbOff){const p=rig.pos,fy=fl(p.x,p.z);if(p.y-fy>1.0&&p.y-fy<1.6&&navHit(nav,p.x,p.z,0.14,fy))COL.log.push({st:GAME.state,t:'wall',who:'player',x:+p.x.toFixed(2),z:+p.z.toFixed(2)});}
+  for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++){const a=cs[i],b=cs[j];if(COL.skip.has(a.pose)||COL.skip.has(b.pose))continue;const d=Math.hypot(a.root.position.x-b.root.position.x,a.root.position.z-b.root.position.z);
+    const rr=(a.hgt>1.55?0.25:0.2)+(b.hgt>1.55?0.25:0.2)-0.04;if(d<rr&&Math.abs(a.root.position.y-b.root.position.y)<1)COL.log.push({st:GAME.state,t:'body',who:nm(a)+'/'+nm(b),d:+d.toFixed(2),x:+a.root.position.x.toFixed(2),z:+a.root.position.z.toFixed(2)});}
+  if(COL.log.length>4000)COL.log.splice(0,2000);}
+
 var BALL_FWD=0.1,BALL_UP=0.0;window.__setBall=(f,u)=>{BALL_FWD=f;BALL_UP=u;};
 /* ================= EPISODE 2 · CASES ================= */
 const CASES={};
@@ -2601,6 +2665,8 @@ CASES.court={id:'court',cmDanger:{pose:'fist',t:'危險！',icon:'⚠️',tag:'�
     /* the ball is moved by S.bc (a holder's anchor, or a scripted path); holders reach it with arm IK */
     S.tick=dt=>{if(S.bc)S.bc(dt);for(const c of [S.yu,S.kai])if(c.grip)c.gripBall={p:S.ball.position,r:0.12};};
     S.holdBy=(c,mode='side')=>{c.grip={w:1,mode};S.bc=()=>ballAnchor(c,S.ball.position);};
+    /* the ball is part of the rewind snapshots, so it comes back in 小宇's hands while time runs backwards */
+    S.snapX=()=>({v:S.ball.visible,g:S.yu.grip?1:0,p:S.ball.position.toArray()});S.applyX=x=>{S.ball.visible=x.v;if(x.g){if(!S.yu.grip)S.holdBy(S.yu);}else{S.yu.grip=null;S.bc=null;S.ball.position.fromArray(x.p);}};
     S.start=()=>{camCut(new V3(0.2,1.34,1.4),new V3(3.6,1.2,-4.6),true);S.kai.pose='idle';faceTo(S.kai,0.2,1.4);S.ball.visible=true;S.bc=null;S.yu.grip=null;S.ball.position.set(-0.55,0.12,0.25);};
     S.cleanup=()=>S.actors.forEach(c=>LIVE.delete(c));return S;},
   intro:[['nar','下課了，你和小凱在籃球場邊玩球。'],['xiaokai','哎呀，我踢太用力，球飛到小宇那邊去了！'],
@@ -2626,16 +2692,19 @@ CASES.court={id:'court',cmDanger:{pose:'fist',t:'危險！',icon:'⚠️',tag:'�
   afterShort:[['xiaoyu','好痛……我的頭，還有肩膀……好痛……'],['teacher','小宇，先不要動！老師馬上叫救護車，也通知你們的家長。'],()=>cmAmb(),['nar','救護車很快就到了，把小宇送到醫院。'],()=>cmHide()],
   regret:[['me','我只是想把球拿回來……我沒有想要他受傷……'],()=>FX.devilIn(),['devil','是他拿走你的球，是他先不對，不關你的事。']],
   angel:[['angel','就算對方先不對，也不能用追趕、貼近的方式討回來。生氣的時候，更要冷靜。'],['angel','我讓時間倒轉，回到你剛剛握緊拳頭的時候。這一次，請你自己做出正確的選擇！']],
-  keyLines:[()=>{S.ball.visible=true;S.holdBy(S.yu);},['nar','小宇抱著球走了，你握緊了拳頭，心跳好快。'],['angel','這一次，你可以自己選。生氣的時候，想一想最先要做的事。']],
+  keyLines:[()=>{const yu=S.yu;S.ball.visible=true;S.holdBy(yu);yu.pose='idle';yu.gaitV=null;faceTo(yu,yu.root.position.x+1,yu.root.position.z+0.15);},['nar','小宇抱著球走了，你握緊了拳頭，心跳好快。'],['angel','這一次，你可以自己選。生氣的時候，想一想最先要做的事。']],
   key:{q:'球被拿走了，你很生氣，要怎麼做？',opts:[
     {t:'停下來，慢慢深呼吸三秒，再去找王老師幫忙',ok:true},
     {t:'追上去，只是想請他把球還我',v:'follow',after:'你一路追在他後面，越追越近，小宇緊張地加快了腳步。',why:'生氣的時候追著別人，對方會緊張、加快腳步，貼太近就可能踩到他的鞋跟而摔倒。'},
     {t:'邊走邊大聲罵他，讓大家都知道他不對',v:'shout',after:'你邊走邊罵，小宇回頭看你，腳步慌亂，你一步跟上，踩到他的鞋跟。',why:'大聲罵人會讓對方回頭、腳步慌亂，更容易出意外。'},
     {t:'走到他旁邊，一路用手指戳他，要他還球',v:'poke',after:'你走在他身後一直戳他，他閃躲時被你踩到鞋跟，整個人往旁邊倒下。',why:'碰觸、推戳別人本來就不行，閃躲的人更容易失去平衡。'}]},
-  async safe(S){const yu=S.yu;S.ball.visible=true;S.holdBy(yu);
-    await par(tween(0.1,()=>{}),(async()=>{S.me.pose='breathe';})());
+  async safe(S){const yu=S.yu,tea=S.tea;S.ball.visible=true;S.holdBy(yu);S.me.pose='breathe';
+    const me0={x:rig.pos.x,z:rig.pos.z,r:0.35},me1={x:0.4,z:0.4,r:0.35},kai={x:S.kai.root.position.x,z:S.kai.root.position.z,r:0.3};
+    /* 王老師 starts walking over while you breathe; 小宇 keeps walking away with the ball; both routes are planned around obstacles and people */
+    const teaGo=walkPath(tea,new V3(0.6,0,-2.2),1.5,{avoid:[me0,me1,kai],face:new V3(0.4,0,0.4)});
+    walkPath(yu,new V3(6.6,0,-6.9),0.9,{avoid:[kai]});
     await tween(2.4,k=>{rig.look.set(lerp(rig.look.x,3.0,k*0.1),lerp(rig.look.y,1.3,k*0.1),lerp(rig.look.z,-6.0,k*0.1));rig.pos.y=1.34+Math.sin(k*PI*2)*0.02;});
-    walkTo(yu,new V3(7.6,0,-8.2),3.2,'walk');await par(walkTo(S.tea,new V3(0.6,0,-2.2),1.0,'walk'),moveFP(new V3(0.4,1.34,0.4),1.8,'walk',new V3(0.6,1.3,-2.4)));},
+    await par(teaGo,moveFP(new V3(0.4,1.34,0.4),1.8,'walk',new V3(0.6,1.3,-2.4)));faceTo(tea,0.4,0.4);},
   safeLines:[['teacher','怎麼了？你的臉色看起來不太好。'],['me','小宇把我們的球拿走了，我很生氣，可是我知道不能追過去。'],['teacher','你先冷靜下來，做得很好。老師幫你去跟他說，把球拿回來。'],
     async S=>{await courtReturn(S);},
     ['angel','答對了！生氣的時候先停下來，慢慢呼吸三秒，再去找老師。不追、不貼近、不動手，大家都平安。']],
@@ -2658,11 +2727,16 @@ async function courtPick(S){const yu=S.yu,b=S.ball,R=0.12;S.bc=null;yu.grip=null
   yu.pose='idle';yu.bend=0;S.holdBy(yu);await wait(0.2);faceTo(yu,0.2,1.4);await wait(0.6);}
 /* success: 王老師 brings 小宇 back and he hands the ball to 小凱 with both hands; 小凱 takes it from underneath */
 async function courtReturn(S){const yu=S.yu,tea=S.tea,kai=S.kai,b=S.ball;tea.pose='idle';
-  await walkTo(tea,new V3(6.7,0,-7.2),2.2,'walk');faceTo(tea,7.6,-8.2);faceTo(yu,6.7,-7.2);await wait(1.2);
-  const A=new V3(1.12,0,-2.15),B=new V3(0.56,0,-2.15);
-  await par(walkTo(yu,A,5.6,'walk'),walkTo(tea,new V3(1.7,0,-3.0),5.6,'walk'),(async()=>{await wait(3.2);await walkTo(kai,B,2.2,'walk');})(),
-    tween(5.6,k=>{rig.look.lerp(_tp.set(0.85,0.95,-2.15),0.03);}));
-  faceTo(yu,B.x,B.z);faceTo(kai,A.x,A.z);faceTo(tea,0.8,-2.15);
+  const me={x:rig.pos.x,z:rig.pos.z,r:0.35},Y=yu.root.position.clone();
+  /* every walk below is planned on the collision grid (pillars, walls, benches) and around the other people */
+  const T1=new V3(Y.x-0.8,0,Y.z+0.45);await walkPath(tea,T1,1.25,{avoid:[me,{x:Y.x,z:Y.z,r:0.3},{x:kai.root.position.x,z:kai.root.position.z,r:0.3}],face:Y});
+  faceTo(yu,T1.x,T1.z);await wait(1.2);
+  const A=new V3(1.12,0,-2.15),B=new V3(0.56,0,-2.15),TE=new V3(1.8,0,-3.0);
+  await par(walkPath(yu,A,1.15,{avoid:[me,{x:B.x,z:B.z,r:0.25},{x:TE.x,z:TE.z,r:0.25},{x:tea.root.position.x,z:tea.root.position.z,r:0.25}],face:B}),
+    (async()=>{await wait(1.3);await walkPath(tea,TE,1.15,{avoid:[me,{x:A.x,z:A.z,r:0.35},{x:B.x,z:B.z,r:0.3},{x:yu.root.position.x,z:yu.root.position.z,r:0.45}],face:new V3(0.84,0,-2.15)});})(),
+    (async()=>{await wait(3.0);await walkPath(kai,B,1.0,{avoid:[me,{x:A.x,z:A.z,r:0.3}],face:A});})(),
+    tween(6.2,k=>{rig.look.lerp(_tp.set(0.85,0.95,-2.15),0.03);}));
+  faceTo(yu,B.x,B.z);faceTo(kai,A.x,A.z);faceTo(tea,0.84,-2.15);
   cmShow('cm-give',[{slot:'A',shot:SH.two(yu,kai,{ly:0.8,y:0.95,d:1.7,fov:40}),tag:'把球還給小凱'},{slot:'B',shot:()=>{const p=b.position;aim(_c3.set(p.x+0.15,p.y+0.35,p.z+0.75),p,34);},tag:'雙手交球'}],{life:3.6});
   const A0=new V3(),M=new V3(),K=new V3();S.bc=null;kai.grip={w:0,mode:'under'};
   await tween(0.8,k=>{const e=easeIO(k);ballAnchor(yu,A0);ballAnchor(kai,K);M.lerpVectors(A0,K,0.5);M.y+=0.04;b.position.lerpVectors(A0,M,e);kai.grip.w=Math.min(1,Math.max(0,(k-0.25)/0.75));});
@@ -2726,7 +2800,7 @@ CASES.wall={id:'wall',cmDanger:{pose:'throwWind',t:'丟！',icon:'🪨',tag:'用
     await wait(0.9);slowmo(1,0);rig.shake=0;await fade(1,350);if(hand.userData.st)hand.userData.st.visible=true;
     S.tea.root.visible=true;S.tea.root.position.set(7.0,0,-3.6);S.me.root.visible=true;S.me.root.position.set(-0.2,0,-5.6);S.me.root.rotation.set(0,PI-0.3,0);S.me.pose='idle';S.me.setMood('sad');
     S.kai.pose='idle';S.kai.setMood('sad');camCut(new V3(3.2,7.2,-3.6),new V3(0.6,0.4,-10.8));await fade(0,350);
-    await walkTo(S.tea,new V3(2.9,0,-6.2),1.4,'walk');faceTo(S.tea,0.6,-6.4);},
+    await walkPath(S.tea,new V3(3.15,0,-5.75),1.6,{avoid:[{x:S.me.root.position.x,z:S.me.root.position.z,r:0.3},{x:S.kai.root.position.x,z:S.kai.root.position.z,r:0.3}],face:new V3(0.6,0,-6.4)});},
   after:[['nar','牆外傳來「砰、砰」的聲音。三輛停在路邊的車，被石頭砸出好幾道刮痕和小凹痕。'],['teacher','你們兩個，剛剛是不是丟了石頭過去？車主已經報警了，老師通知家長帶你們去警察局。'],['nar','修理車子的費用，要由你和爸爸媽媽一起賠。']],
   regret:[['me','我只是想試試看能不能丟過去……我不知道外面有車……'],()=>FX.devilIn(),['devil','誰叫車子停在那裡？根本不關你的事。']],
   angel:[['angel','看不到的地方，不代表沒有人、沒有車。丟出去的石頭，要為它砸到的東西負責。'],['angel','我讓時間倒轉，回到你剛撿起石頭的時候。這一次，請你自己選。']],
@@ -2738,7 +2812,7 @@ CASES.wall={id:'wall',cmDanger:{pose:'throwWind',t:'丟！',icon:'🪨',tag:'用
     {t:'請小凱爬上牆頭看看有沒有車，再丟',v:'peek',after:'小凱不敢爬，你們沒看清楚就丟了。石頭落在牆外的車子上。',why:'爬牆很危險，而且就算看了，石頭一丟出去就控制不了。最好的辦法，就是不要丟。'}]},
   async safe(S){S.stone.visible=false;S.gripStone(false);S.me.pose='squat';handTo(0.2,-0.45,-0.55);await wait(1.0);handTo(0.2,-0.5,-0.5,false);hand.visible=false;S.me.pose='idle';
     await moveFP(new V3(0.1,1.3,-5.3),0.9,'walk',new V3(1.6,1.15,-7.4));S.kai.pose='idle';faceTo(S.kai,0.1,-5.3);S.kai.setMood('');
-    S.tea.root.visible=true;S.tea.root.position.set(-5.5,0,-6.4);await walkTo(S.tea,new V3(-0.7,0,-8.4),2.0,'walk');faceTo(S.tea,0.1,-5.3);},
+    S.tea.root.visible=true;S.tea.root.position.set(-5.5,0,-6.4);await walkPath(S.tea,new V3(-0.9,0,-7.05),2.3,{avoid:[{x:rig.pos.x,z:rig.pos.z,r:0.35},{x:S.kai.root.position.x,z:S.kai.root.position.z,r:0.3}],face:new V3(0.1,0,-5.3)});},
   safeLines:[['me','小凱，牆外面可能有車，看不到的地方不能丟。'],['xiaokai','對耶，我都沒想到。好，我們不丟了。'],['teacher','你們兩個說得很對。我們一起把石頭放到草地邊，再去玩別的遊戲。'],
     async S=>{S.kai.pose='cheer';S.kai.setMood('joy');},
     ['angel','答對了！石頭不丟。圍牆那一邊你看不到，丟出去的石頭可能砸到車、也可能砸到人。']],
@@ -2784,7 +2858,7 @@ CASES.stage={id:'stage',cmDanger:{pose:'jumpReady',t:'跳！',icon:'🦘',tag:'�
     ()=>FX.devilIn(),['devil','跑上司令台！從上面跳下來，一定超帥的！']],
   steps:[
     {lines:[['nar','司令台離地面大約一公尺，兩邊各有一座樓梯。']],q:'你要怎麼辦？',devil:'從樓梯一路跑上去！',good:'慢慢走上去',cm:{pose:'run',t:'衝！',icon:'🏃',tag:'跑上司令台',sfx:'噠噠',vtag:'樓梯'},
-      act:async(S,v)=>{await moveFP(new V3(8.0,1.25,-5.6),2.6,'run',new V3(10.5,1.2,-8.75));await moveFP(new V3(ST.half+ST.run*(ST.n+0.5),1.25,-8.75),0.8,'run',new V3(6,1.6,-8.75));
+      act:async(S,v)=>{await moveFP(new V3(8.0,1.25,-5.6),2.6,'run',new V3(10.5,1.2,-8.75));/* go round the end of the stair balustrade, not through it */await moveFP(new V3(10.45,1.25,-7.75),0.62,'run',new V3(10.2,1.2,-9.6));await moveFP(new V3(ST.half+ST.run*(ST.n+0.5),1.25,-8.75),0.45,'run',new V3(6,1.6,-8.75));
         await stairWalk(S,{x:ST.half+ST.run*(ST.n+0.5),y:0,z:-8.75,fx:-1,fz:0,dir:1,N:ST.n+1,run:ST.run,rise:ST.rise,fast:true},1.7);S.me.pose='run';
         S.meiOn();await moveFP(new V3(0,2.3,-7.85),2.4,'walk',new V3(-3,0.6,-6.8));}},
     {lines:[['nar','你站在司令台邊緣，離地面一公尺高。下面有一位同學走過來，蹲下來綁鞋帶。'],['devil','不要管她！直接跳下去，她會閃開的！']],q:'你要怎麼做？',devil:'直接跳下去！',good:'走旁邊的樓梯下去'}],
@@ -2847,7 +2921,7 @@ function loop(now){requestAnimationFrame(loop);const rdt=Math.min(0.05,(now-last
   if(mode==='map')updateMap(rdt);else if(mode==='title')updateTitle(rdt);
   if(S&&S.tick)S.tick(dt);
   LIVE.forEach(c=>{if(c.root.parent===curScene)c.update(dt);});
-  LIVE.forEach(c=>{if(c.root.parent===curScene)groundSnap(c);});
+  LIVE.forEach(c=>{if(c.root.parent===curScene)groundSnap(c);});colCheck();
   if(mode==='case')applyCam(dt);
   voiceTick();fxTick(rdt);
   camera.updateMatrixWorld();updateOverlay(dt);
@@ -2897,7 +2971,7 @@ async function bootVRM(){const go=$('#go'),lb=$('#lbar'),bar=lb.querySelector('i
   }catch(e){console.warn('載入失敗，改用內建角色',e);GAME.vrmOK=!!(VCH.me_b&&VCH.me_g);}
   bar.style.width='100%';lab.textContent='準備完成！';await new Promise(r=>setTimeout(r,250));
   lb.classList.add('hide');go.classList.remove('hide');go.disabled=false;GAME.vrm=!!VRM_ME;try{['b','g'].forEach(g=>{const t=thumbFor('me_'+g);const e=$('#ph_'+g);if(t&&e){e.textContent='';e.style.backgroundImage='url('+t+')';e.style.backgroundSize='cover';}});}catch(e){console.warn('chip thumb',e);}GAME.ready=true;}
-GAME.dbg=()=>({stairGait,stairWalk,armIK,ballAnchor,courtPick,courtReturn,ambScene,reward,gameOver,overlay,CASES,caseCard,srcOf,HELP,cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
+GAME.dbg=()=>({navBuild,navPath,navHit,walkPath,COL,CHAR,stairGait,stairWalk,armIK,ballAnchor,courtPick,courtReturn,ambScene,reward,gameOver,overlay,CASES,caseCard,srcOf,HELP,cmAmb,MAP,rig,camCut,V3,S,applyCam,curScene});GAME.runCase=id=>{busy=true;$('#title').classList.add('hide');musicPlay('campus');return runCase(id);};
 GAME.start=()=>$('#go').click();
 window.__vp=voicePlay;window.__dbg={makeDevil,makeAngel,thumbFor,renderer,THREE,SRGB,V3,thumbs,PORTRAIT,say,FX,storyOn,VO,vNow};GAME._dbg={cmShow,cmHide,reward:(id)=>reward(CASES[id]),gameOver:(id)=>gameOver(CASES[id],CASES[id].key.opts[1]),verdict:(id)=>overlay(`<h2>⚖️ 真實判決</h2><p>這個情境，改編自真實的法院判決：</p>${caseCard(CASES[id])}<div class="btns"><button class="btn blue big" data-a="ok">我知道了</button></div>`,'verdict'),fxRays,fxConfetti,fxHearts,fxSparks,bravo,walkTo,FX,rig,ROLE,VO,caseCard,CASES,srcOf,MAP,PLACES,pl:()=>player,setMode:m=>mode=m,camera,setLook,save,VCH,getVRMChar,npc,campus,LIVE};
 bootVRM();
