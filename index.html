@@ -2204,6 +2204,62 @@ function makeLuxCar(paint){
   G.traverse(o=>{if(o.isMesh&&o!==sh){o.castShadow=true;}});sh.castShadow=false;
   return G;}
 
+/* ---- real sheet-metal dents ----
+   The car body is a coarse extrusion, so a dent is a dense patch (polar grid) conformed to the body by ray casts, sharing the paint
+   material. Inside the dent the body's own fragments are discarded (shader hole), so the patch can be pushed into the panel; the
+   patch's recomputed normals bend the clear-coat reflections the way a real dent does. Profile: smooth dish + slight raised
+   shoulder + a sharp impact pit with chipped paint (primer and bare steel), elongated along the throw direction. */
+const _dV=new V3(),_dN=new V3(),_dT=new V3(),_dB=new V3();
+function makeDentable(car){if(car.userData.dentOK)return;car.userData.dentOK=true;const body=car.userData.body,mat=body.material;
+  const U={value:[0,1,2].map(()=>new THREE.Vector4(0,0,0,0))};car.userData.dentU=U;
+  const hook=(sh)=>{sh.uniforms.uDents=U;
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vDentW;').replace('#include <project_vertex>','#include <project_vertex>\nvDentW=(modelMatrix*vec4(transformed,1.0)).xyz;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vDentW;uniform vec4 uDents[3];').replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nfor(int i=0;i<3;i++){if(uDents[i].w>0.0&&distance(vDentW,uDents[i].xyz)<uDents[i].w)discard;}');};
+  mat.onBeforeCompile=hook;mat.customProgramCacheKey=()=>'dent3';mat.needsUpdate=true;
+  const dm=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking});dm.onBeforeCompile=hook;dm.customProgramCacheKey=()=>'dentD';body.customDepthMaterial=dm;
+  car.userData.dents=[];}
+/* hit: {p,n} on the body (world); dir: throw direction (world); o: {R,D,sig,pit} */
+function addDent(car,hit,dir,o={}){makeDentable(car);const body=car.userData.body,surf=car.userData.surf,R=o.R||0.2,D=o.D||0.016,sig=o.sig||0.05,el=o.el||1.25;
+  const idx=car.userData.dents.length;if(idx>2)return null;
+  const n=hit.n.clone().normalize(),T=_dT.copy(dir).addScaledVector(n,-dir.dot(n)).normalize().clone(),B=new V3().crossVectors(n,T).normalize();
+  const pos=[],base=[],dsp=[],nrm0=[],rr=[];
+  const prof=(u,v)=>{const r=Math.hypot(u/el,v),th=Math.atan2(v,u);
+    return D*Math.exp(-((r/sig)**2))*(1+(0.07*Math.sin(5*th+1.3)+0.05*Math.sin(9*th))*(1-Math.exp(-((r/(sig*0.7))**2))))   /* dish with slight creases */
+      +(o.pit??0.003)*Math.exp(-((r/0.011)**2))                                         /* sharp impact pit */
+      -D*0.09*Math.exp(-(((r-sig*1.75)/(sig*0.33))**2));};                           /* raised shoulder around the dish */
+  const put=(u,v)=>{const org=hit.p.clone().addScaledVector(T,u).addScaledVector(B,v).addScaledVector(n,0.25);const h=surf(org,n.clone().negate());
+    const P=h?h.p:hit.p.clone().addScaledVector(T,u).addScaledVector(B,v),N=h?h.n:n.clone();const lp=P.clone().addScaledVector(N,0.0007);
+    base.push(lp);const d=prof(u,v);dsp.push(N.clone().multiplyScalar(-d));nrm0.push(N);rr.push(Math.hypot(u,v));};
+  /* square grid clipped to the disc: even triangles, no pole at the centre */
+  const GN=72,step=2*R/GN,id=new Int32Array((GN+1)*(GN+1)).fill(-1);
+  for(let j=0;j<=GN;j++)for(let i=0;i<=GN;i++){const u=-R+i*step,v=-R+j*step;if(Math.hypot(u,v)>R+step*0.75)continue;id[j*(GN+1)+i]=base.length;put(u,v);}
+  const ix=[];for(let j=0;j<GN;j++)for(let i=0;i<GN;i++){const a=id[j*(GN+1)+i],b=id[j*(GN+1)+i+1],c=id[(j+1)*(GN+1)+i],d=id[(j+1)*(GN+1)+i+1];if(a<0||b<0||c<0||d<0)continue;
+    if((i+j)%2)ix.push(a,b,c,b,d,c);else ix.push(a,d,c,a,b,d);}
+  const g=new THREE.BufferGeometry(),pa=new Float32Array(base.length*3);g.setAttribute('position',new THREE.BufferAttribute(pa,3));g.setIndex(ix);
+  const inv=new THREE.Matrix4().copy(car.matrixWorld).invert();
+  const set=k=>{for(let i=0;i<base.length;i++){_dV.copy(base[i]).addScaledVector(dsp[i],k).applyMatrix4(inv);pa[i*3]=_dV.x;pa[i*3+1]=_dV.y;pa[i*3+2]=_dV.z;}
+    g.attributes.position.needsUpdate=true;g.computeVertexNormals();const na=g.attributes.normal;
+    /* the outer rings keep the body's own normals so the patch edge is invisible */
+    const nm=new THREE.Matrix3().getNormalMatrix(inv);for(let i=0;i<base.length;i++){const w=Math.min(1,Math.max(0,(rr[i]-R*0.72)/(R*0.2)));if(w<=0)continue;_dN.copy(nrm0[i]).applyMatrix3(nm).normalize();
+      _dV.fromBufferAttribute(na,i).lerp(_dN,w).normalize();na.setXYZ(i,_dV.x,_dV.y,_dV.z);}na.needsUpdate=true;};
+  set(0);
+  const pm=body.material.clone();pm.onBeforeCompile=()=>{};pm.customProgramCacheKey=()=>'patch';pm.polygonOffset=true;pm.polygonOffsetFactor=-1;pm.polygonOffsetUnits=-2;
+  const patch=new THREE.Mesh(g,pm);patch.receiveShadow=true;patch.castShadow=false;patch.visible=false;car.add(patch);
+  /* chipped paint at the impact pit: an irregular flake of bare steel inside a ring of primer, both following the deformed metal */
+  const chipR=(o.chip||0.011),cut=a=>chipR*(1+0.3*Math.sin(3*a+0.7)+0.18*Math.sin(7*a+2.1));
+  const sample=(u,v,lift)=>{const org=hit.p.clone().addScaledVector(T,u).addScaledVector(B,v).addScaledVector(n,0.25);const h=surf(org,n.clone().negate());
+    const P=h?h.p:hit.p.clone().addScaledVector(T,u).addScaledVector(B,v),N=h?h.n:n.clone();return [P.addScaledVector(N,0.0007+lift),N.clone().multiplyScalar(-prof(u,v))];};
+  const flake=(r0f,r1f,lift,matl)=>{const A=28,RS=3,bb=[],dd=[],ii=[];
+    for(let i=0;i<=RS;i++)for(let j=0;j<A;j++){const an=j/A*PI*2,c=cut(an),r=r0f(c)+(r1f(c)-r0f(c))*i/RS;const [P,Dv]=sample(Math.cos(an)*r,Math.sin(an)*r,lift);bb.push(P);dd.push(Dv);}
+    const inner=r0f(1)===0;for(let i=0;i<RS;i++)for(let j=0;j<A;j++){const a0=i*A+j,a1=i*A+(j+1)%A,b0=(i+1)*A+j,b1=(i+1)*A+(j+1)%A;ii.push(a0,b0,a1,a1,b0,b1);}
+    const gg=new THREE.BufferGeometry(),fa=new Float32Array(bb.length*3);gg.setAttribute('position',new THREE.BufferAttribute(fa,3));gg.setIndex(ii);
+    const mesh=new THREE.Mesh(gg,matl);mesh.visible=false;car.add(mesh);
+    mesh.userData.set=k=>{for(let i=0;i<bb.length;i++){_dV.copy(bb[i]).addScaledVector(dd[i],k).applyMatrix4(inv);fa[i*3]=_dV.x;fa[i*3+1]=_dV.y;fa[i*3+2]=_dV.z;}gg.attributes.position.needsUpdate=true;gg.computeVertexNormals();};return mesh;};
+  const chip=flake(()=>0,c=>c,0.0004,new THREE.MeshStandardMaterial({color:'#9aa0a8',metalness:0.9,roughness:0.35,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-6}));
+  const primer=flake(c=>c,c=>c*1.45+0.002,0.0003,new THREE.MeshStandardMaterial({color:'#cfcbc2',metalness:0.0,roughness:0.9,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4}));
+  const dent={idx,hit:hit.p.clone(),k:0,set:k=>{dent.k=k;const on=k>0.001;patch.visible=chip.visible=primer.visible=on;
+      car.userData.dentU.value[idx].set(hit.p.x,hit.p.y,hit.p.z,on?R*0.86:0);if(on){set(k);chip.userData.set(k);primer.userData.set(k);}}};
+  car.userData.dents.push(dent);return dent;}
 /* ---- 2. 圍牆邊草地 + 牆外停放的車 ---- */
 function buildWall(){
   const sc=new THREE.Scene();addPano(sc,0,0);const sun=addLights(sc,{shadowR:30,dir:[-40,22,14],target:[0,0,-8],sun:2.3,hemi:1.0});sun.color.set(0xffd7a0);
@@ -2234,17 +2290,18 @@ function buildWall(){
   /* damage (scratches, small dents, one main dent on the hood) placed on the real body surface; hidden until hit */
   const UP=new V3(0,1,0);
   const DM=CARS.map(car=>{const g=new THREE.Group();g.visible=false;car.add(g);const surf=car.userData.surf;const cp=car.position.clone();car.position.set(0,0,0);car.updateMatrixWorld(true);
-    const scr=new THREE.MeshStandardMaterial({color:'#e2e5e8',roughness:0.5,metalness:0.2,polygonOffset:true,polygonOffsetFactor:-2});
+    const scr=new THREE.MeshStandardMaterial({color:'#d9dcdf',roughness:0.45,metalness:0.3,transparent:true,opacity:0.55,polygonOffset:true,polygonOffsetFactor:-2});
     const onTop=(x,z)=>surf(new V3(x,3,z),new V3(0,-1,0));
     const place=(m,h,off=0.003)=>{m.position.copy(h.p).addScaledVector(h.n,off);m.quaternion.setFromUnitVectors(UP,h.n);g.add(m);return m;};
-    [[1.25,-0.45,0.4,0.42],[1.75,0.5,-0.3,0.36],[1.15,0.55,0.9,0.28],[-2.0,0.1,0.2,0.4],[-0.3,-0.4,-0.6,0.4],[-0.6,0.45,0.5,0.32]].forEach(([x,z,ry,l])=>{const h=onTop(x,z);if(h){const m=place(new THREE.Mesh(new THREE.BoxGeometry(l,0.003,0.014),scr),h);m.rotateY(ry);}});
-    [[1.85,-0.5,0.06],[-2.0,0.45,0.05]].forEach(([x,z,r])=>{const h=onTop(x,z);if(h){const d=place(new THREE.Mesh(new THREE.SphereGeometry(r,14,8),new THREE.MeshStandardMaterial({color:'#3c4047',roughness:0.6})),h,-0.002);d.scale.set(1,0.15,1);}});
+    [[1.25,-0.45,0.4,0.42],[1.75,0.5,-0.3,0.36],[1.15,0.55,0.9,0.28],[-2.0,0.1,0.2,0.4],[-0.3,-0.4,-0.6,0.4],[-0.6,0.45,0.5,0.32]].forEach(([x,z,ry,l])=>{const h=onTop(x,z);if(h){const m=place(new THREE.Mesh(new THREE.BoxGeometry(l*0.55,0.0008,0.0022),scr),h,0.0012);m.rotateY(ry);}});
     const h=onTop(1.55,0.12);const D=new THREE.Group();g.add(D);if(h){D.position.copy(h.p);D.quaternion.setFromUnitVectors(UP,h.n);}
-    const sh=new THREE.Mesh(new THREE.CircleGeometry(0.16,28),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.32,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}));sh.rotation.x=-PI/2;sh.position.y=0.003;D.add(sh);
-    const cr=new THREE.Mesh(new THREE.SphereGeometry(0.1,20,10),new THREE.MeshStandardMaterial({color:'#3a3e45',metalness:0.5,roughness:0.5}));cr.scale.set(1,0.1,0.85);D.add(cr);
-    const rim=new THREE.Mesh(new THREE.TorusGeometry(0.105,0.011,6,28),new THREE.MeshStandardMaterial({color:'#e8ebee',metalness:0.6,roughness:0.3}));rim.rotation.x=PI/2;rim.scale.set(1,0.85,1);rim.position.y=0.004;D.add(rim);
-    [[0.2,0.09],[2.1,0.07],[3.9,0.1],[5.2,0.06]].forEach(([a2,l])=>{const c=new THREE.Mesh(new THREE.BoxGeometry(l,0.003,0.008),scr);c.position.set(Math.cos(a2)*(0.11+l/2),0.004,Math.sin(a2)*(0.11+l/2));c.rotation.y=-a2;D.add(c);});
-    g.userData.D=D;car.position.copy(cp);car.updateMatrixWorld(true);g.userData.hit=D.getWorldPosition(new V3());return g;});
+    g.userData.D=D;car.position.copy(cp);car.updateMatrixWorld(true);g.userData.hit=D.getWorldPosition(new V3());
+    /* real dents: the main one where the stone lands, and two smaller ones from other stones */
+    const throwDir=new V3().subVectors(g.userData.hit,new V3(0.5,1.4,-6.0)).setY(-1.2).normalize(),car_=car;
+    const hw=surf(new V3(g.userData.hit.x,3,g.userData.hit.z),new V3(0,-1,0));
+    const main=hw&&addDent(car,hw,throwDir,{R:0.2,D:0.017,sig:0.05,pit:0.004,chip:0.012});
+    const sm=[[1.85,-0.5],[-2.0,0.45]].map(([x,z])=>{const q=car.localToWorld(new V3(x,3,z)),h2=surf(q,new V3(0,-1,0));return h2&&addDent(car,h2,throwDir,{R:0.1,D:0.007,sig:0.024,pit:0.002,chip:0.006});}).filter(Boolean);
+    g.userData.main=main;g.userData.show=k=>{g.visible=k>0;if(main)main.set(k);sm.forEach(d=>d.set(k>0?1:0));};g.userData.show(0);return g;});
   const stoneM=new THREE.Mesh(new THREE.IcosahedronGeometry(0.1,1),toon('#8b857a'));stoneM.castShadow=true;stoneM.visible=false;sc.add(stoneM);
   const wave=new THREE.Mesh(new THREE.RingGeometry(0.12,0.16,40),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));wave.rotation.x=-PI/2;wave.visible=false;sc.add(wave);
   const chips=[];for(let i=0;i<14;i++){const c=new THREE.Mesh(new THREE.TetrahedronGeometry(0.025+((i*7)%4)*0.008),toon(i%3?'#9a958b':'#c9d0d8'));c.visible=false;sc.add(c);chips.push(c);}
@@ -2795,9 +2852,14 @@ CASES.wall={id:'wall',cmDanger:{pose:'throwWind',t:'丟！',icon:'🪨',tag:'用
   preview:'午後的圍牆邊，地上有好多小石頭……',hint:'牆外面看不到的地方，有什麼可能被你丟中？',
   lesson:'石頭不要丟！圍牆那一邊看不到，丟出去的石頭可能砸到車子，更可能砸到人。',
   build(){const sc=buildWall();const S={scene:sc};
-    S.kai=npc(sc,'xiaokai',[2.0,0,-7.3],PI);S.tea=npc(sc,'teacher',[8,0,0],-PI/2);S.me=meChar(sc,[0,0,-5.4],PI);S.tea.root.visible=false;S.me.root.visible=false;
+    S.kai=npc(sc,'xiaokai',[2.0,0,-6.6],PI);S.tea=npc(sc,'teacher',[8,0,0],-PI/2);S.me=meChar(sc,[0,0,-5.4],PI);S.tea.root.visible=false;S.me.root.visible=false;
     S.actors=[S.kai,S.tea,S.me];S.victim=S.kai;S.floor=()=>0;Object.assign(CHAR,{xiaokai:S.kai,teacher:S.tea,me:S.me});S.dmg=sc.userData.dmg;S.stone=sc.userData.stone;
-    S.hit=(i)=>{S.dmg[i].visible=true;};
+    S.hit=(i)=>{S.dmg[i].userData.show(1);};
+    /* a real throw: ballistic flight (g = 9.8 m/s²) from the hand to the target, the shortest flight that clears the 2.3 m wall with margin */
+    S.ballistic=(P0,P1)=>{const G=9.8;let best=null;for(let T=0.6;T<=2.4;T+=0.02){const v=new V3().subVectors(P1,P0).divideScalar(T);v.y+=0.5*G*T;
+        const at=z=>{const t=T*(z-P0.z)/(P1.z-P0.z);return P0.y+v.y*t-0.5*G*t*t;};if(P0.z>-7.6&&P1.z<-8.4&&(at(-7.7)<2.42||at(-8.3)<2.42))continue;best={T,v};break;}
+      if(!best){const T=1.4,v=new V3().subVectors(P1,P0).divideScalar(T);v.y+=0.5*G*T;best={T,v};}
+      best.at=(t,out=new V3())=>out.set(P0.x+best.v.x*t,P0.y+best.v.y*t-4.9*t*t,P0.z+best.v.z*t);return best;};
     /* the stone held in the 3D model's right hand (seen in the panel shots) */
     S.handStone=new THREE.Mesh(new THREE.IcosahedronGeometry(0.05,1),toon('#8b857a'));S.handStone.visible=false;
     const holdIn=(c,st,on)=>{const bn=c.B&&c.B.rightHand;if(!bn)return;if(st.parent!==bn){bn.add(st);const ws=bn.getWorldScale(new V3());st.scale.set(1/ws.x,1/ws.y,1/ws.z);st.position.set(0.0,-0.03/ws.y,0.0);st.position.x=(bn.position.x>0?1:-1)*0.07/ws.x;}st.visible=on;};
@@ -2810,21 +2872,23 @@ CASES.wall={id:'wall',cmDanger:{pose:'throwWind',t:'丟！',icon:'🪨',tag:'用
     S.strike=async(i,from,hi)=>{const g=S.dmg[i],P=g.userData.hit.clone(),m=S.stone,sc=S.scene;
       m.visible=true;m.scale.setScalar(0.6);slowmo(0.28,4.5);SFX.drive&&SFX.fly();const st0=stageRig();let hid=false;m.position.copy(from);
       const chase=new V3(),look=new V3(),closeP=new V3(P.x+1.15,P.y+0.62,P.z+0.95),closeL=P.clone();
-      await tween(1.25,k=>{if(!hid&&k>0.16){hid=true;cmHide();hand.visible=false;rig.fp=false;rig.bob=0;}const x=lerp(from.x,P.x,k),z=lerp(from.z,P.z,k),y=lerp(from.y,P.y+0.05,k)+4*hi*k*(1-k);m.position.set(x,y,z);m.rotation.x+=0.35;m.rotation.z+=0.2;
+      const BL=S.ballistic(from,P.clone().add(new V3(0,0.05,0))),_q=new V3();
+      await tween(1.25,k=>{if(!hid&&k>0.16){hid=true;cmHide();hand.visible=false;rig.fp=false;rig.bob=0;}BL.at(k*BL.T,_q);const x=_q.x,y=_q.y,z=_q.z;m.position.set(x,y,z);m.rotation.x+=0.35;m.rotation.z+=0.2;
         chase.set(x+0.75,y+0.42,z+1.15);if(chase.z>-8.5)chase.y=Math.max(chase.y,2.75);look.set(x,y-0.05,z-0.6);const w=Math.max(0,(k-0.6)/0.4),e=w*w*(3-2*w);
         rig.pos.lerpVectors(chase,closeP,e);rig.look.lerpVectors(look,closeL,e);rig.roll=0.06*Math.sin(k*PI);});
       /* impact: dent pops in, ring wave, chips fly, the stone bounces off */
-      g.visible=true;const D=g.userData.D;D.scale.setScalar(0.01);SFX.dent();CM.stage=()=>st0;impact('#ffffff');rig.shake=0.7;
+      const dn=g.userData.main;if(dn)dn.set(0.02);SFX.dent();CM.stage=()=>st0;impact('#ffffff');rig.shake=0.7;
       const [sx,sy]=fxScreen(m);fxSparks(sx,sy,RM?14:70,'#fff3c4');
       const wave=sc.userData.wave;wave.visible=true;wave.position.set(P.x,P.y+0.02,P.z);
       const ch=sc.userData.chips.map(c=>{c.visible=true;c.position.copy(P);return new V3((Math.random()-.5)*2.4,1.2+Math.random()*1.6,(Math.random()-.5)*2.4);});
       const b0=P.clone(),bv=new V3(0.9,1.6,0.7);
-      await tween(0.9,k=>{D.scale.set(lerp(0.01,1,easeO(Math.min(1,k*4))),1,lerp(0.01,1,easeO(Math.min(1,k*4))));
+      /* the panel caves in within ~60 ms, overshoots, and springs back a little */
+      await tween(0.9,k=>{if(dn){const a=Math.min(1,k/0.07),b=Math.max(0,Math.min(1,(k-0.07)/0.3));dn.set(a<1?easeO(a)*1.2:lerp(1.2,1.0,easeIO(b)));}
         wave.scale.setScalar(1+k*3.2);wave.material.opacity=0.9*(1-k)*(1-k);
         sc.userData.chips.forEach((c,j)=>{const v=ch[j];c.position.set(P.x+v.x*k,P.y+v.y*k-4.9*k*k,P.z+v.z*k);c.rotation.x+=0.4;c.rotation.y+=0.3;});
         m.position.set(b0.x+bv.x*k,b0.y+bv.y*k-4.9*k*k*1.6,b0.z+bv.z*k);});
-      wave.visible=false;sc.userData.chips.forEach(c=>c.visible=false);m.visible=false;m.scale.setScalar(1);};
-    S.fly=async(from,to,dur,hi=1.9)=>{const m=S.stone;m.visible=true;await tween(dur,k=>{m.position.set(lerp(from.x,to.x,k),lerp(from.y,to.y,k)+4*hi*k*(1-k),lerp(from.z,to.z,k));m.rotation.x+=0.3;});m.visible=false;};
+      wave.visible=false;sc.userData.chips.forEach(c=>c.visible=false);m.visible=false;m.scale.setScalar(1);g.userData.show(1);};
+    S.fly=async(from,to)=>{const m=S.stone,BL=S.ballistic(from,to);m.visible=true;m.position.copy(from);await tween(BL.T,k=>{BL.at(k*BL.T,m.position);m.rotation.x+=0.3;m.rotation.z+=0.17;});m.visible=false;};
     S.start=()=>{camCut(new V3(0,1.3,-5.4),new V3(1.6,1.25,-8.6),true);S.kai.pose='idle';S.kai.setMood('joy');faceTo(S.kai,0,-8);};
     S.cleanup=()=>{S.actors.forEach(c=>LIVE.delete(c));if(hand&&hand.userData.st){hand.children[0].remove(hand.userData.st);hand.userData.st=null;}};return S;},
   intro:[['nar','午後，你和小凱在學校的圍牆邊玩。圍牆好高，上面是一整排磁磚。'],['xiaokai','你看，地上好多小石頭！我們來比賽，誰丟得過這道牆！'],
@@ -2832,9 +2896,9 @@ CASES.wall={id:'wall',cmDanger:{pose:'throwWind',t:'丟！',icon:'🪨',tag:'用
   steps:[
     {lines:[['nar','你蹲下來，撿起一顆比手掌還小的石頭。']],q:'你要怎麼辦？',devil:'撿起石頭，握緊它！',good:'把石頭放下',cm:{pose:'squat',t:'撿！',icon:'🪨',tag:'撿起石頭',sfx:'喀啦',vtag:'地上的石頭'},
       act:async(S,v)=>{if(!hand.userData.st){const st=new THREE.Mesh(new THREE.IcosahedronGeometry(0.05,1),toon('#8b857a'));st.position.set(0,-0.03,-0.34);hand.children[0].add(st);hand.userData.st=st;}S.me.pose='squat';S.gripStone(true);await moveFP(new V3(0,0.78,-5.5),0.7,'',new V3(0.35,0.0,-6.3),easeIO);handTo(0.2,-0.5,-0.55);await wait(0.9);handTo(0.2,-0.15,-0.45);await wait(0.4);S.me.pose='idle';await moveFP(new V3(0,1.3,-5.4),0.8,'',new V3(1.6,1.25,-8.6),easeIO);S.kai.pose='squat';await wait(0.6);S.kaiGrip(true);S.kai.pose='idle';}},
-    {lines:[['xiaokai','我先丟！你看我的！'],()=>{S.kaiGrip(true);S.kai.pose='throwWind';},['devil','換你了！丟遠一點！用力一點！']],q:'你要怎麼做？',devil:'用力把石頭丟過牆！',good:'把石頭放下，告訴小凱牆外可能有車',
-      act:async(S,v)=>{S.kaiGrip(true);S.kai.pose='throwWind';await wait(0.75);S.kai.pose='throw';await wait(0.13);SFX.pop();const kp=S.kaiStone.getWorldPosition(new V3());S.kaiGrip(false);
-        await par(S.fly(kp,S.dmg[2].userData.hit.clone(),1.0,1.6),moveFP(new V3(0,1.3,-5.4),1.0,'',new V3(1.4,2.4,-8.6),easeIO));
+    {lines:[['xiaokai','我先丟！你看我的！'],()=>{const tg=S.dmg[2].userData.hit;faceTo(S.kai,tg.x,tg.z);S.kaiGrip(true);S.kai.pose='throwWind';},['devil','換你了！丟遠一點！用力一點！']],q:'你要怎麼做？',devil:'用力把石頭丟過牆！',good:'把石頭放下，告訴小凱牆外可能有車',
+      act:async(S,v)=>{const tg=S.dmg[2].userData.hit;faceTo(S.kai,tg.x,tg.z);S.kaiGrip(true);S.kai.pose='throwWind';await wait(0.75);S.kai.pose='throw';await wait(0.13);SFX.pop();let kp=S.kaiStone.getWorldPosition(new V3());{const yy=S.kai.root.rotation.y,rel=S.kai.root.position.clone().add(new V3(Math.sin(yy)*0.3,1.45,Math.cos(yy)*0.3));if(kp.y<1.25||kp.distanceTo(rel)>0.45)kp=rel;}S.kaiGrip(false);
+        await par(S.fly(kp,S.dmg[2].userData.hit.clone()),moveFP(new V3(0,1.3,-5.4),1.0,'',new V3(2.6,2.3,-8.6),easeIO));
         SFX.dent();S.hit(2);S.kai.pose='cheer';await moveFP(new V3(0,1.3,-5.4),0.6,'',new V3(1.6,1.25,-8.6),easeIO);}}],
   keyIdx:1,
   async tragedy(S,v){
@@ -2849,7 +2913,7 @@ CASES.wall={id:'wall',cmDanger:{pose:'throwWind',t:'丟！',icon:'🪨',tag:'用
   after:[['nar','牆外傳來「砰、砰」的聲音。三輛停在路邊的車，被石頭砸出好幾道刮痕和小凹痕。'],['teacher','你們兩個，剛剛是不是丟了石頭過去？車主已經報警了，老師通知家長帶你們去警察局。'],['nar','修理車子的費用，要由你和爸爸媽媽一起賠。']],
   regret:[['me','我只是想試試看能不能丟過去……我不知道外面有車……'],()=>FX.devilIn(),['devil','誰叫車子停在那裡？根本不關你的事。']],
   angel:[['angel','看不到的地方，不代表沒有人、沒有車。丟出去的石頭，要為它砸到的東西負責。'],['angel','我讓時間倒轉，回到你剛撿起石頭的時候。這一次，請你自己選。']],
-  keyLines:[()=>{S.gripStone(true);S.kaiGrip(false);S.me.pose='idle';camCut(new V3(0,1.3,-5.4),new V3(1.6,1.25,-8.6),true);S.dmg.forEach(g=>g.visible=false);S.stone.visible=false;S.kai.pose='idle';S.kai.setMood('joy');},['nar','你手上拿著一顆石頭，小凱在旁邊笑著等你。'],['angel','這一次，你可以自己選。想一想，牆的那一邊，有什麼看不到的東西？']],
+  keyLines:[()=>{S.gripStone(true);S.kaiGrip(false);S.me.pose='idle';camCut(new V3(0,1.3,-5.4),new V3(1.6,1.25,-8.6),true);S.dmg.forEach(g=>g.userData.show(0));S.stone.visible=false;S.kai.pose='idle';S.kai.setMood('joy');},['nar','你手上拿著一顆石頭，小凱在旁邊笑著等你。'],['angel','這一次，你可以自己選。想一想，牆的那一邊，有什麼看不到的東西？']],
   key:{q:'你手上拿著石頭，小凱要你一起丟，你要怎麼做？',opts:[
     {t:'把石頭放下，對小凱說：「牆外可能有車，不能丟。」',ok:true},
     {t:'先丟一顆小的試試看，應該不會有事',v:'small',after:'小石頭飛過圍牆，「叮」的一聲，打在車子上，留下一道刮痕。',why:'再小的石頭，砸在車上也會留下刮痕；丟出去之前，你根本不知道會落在哪裡。'},
